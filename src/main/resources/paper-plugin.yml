@@ -1,0 +1,6 @@
+name: ElvenideStructures
+version: '${project.version}'
+main: com.elvenide.structures.ElvenideStructures
+api-version: '1.21'
+authors:
+  - Elvenide
