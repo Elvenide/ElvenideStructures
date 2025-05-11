@@ -1,6 +1,6 @@
 package com.elvenide.structures.selection;
 
-import com.elvenide.core.ElvenideCore;
+import com.elvenide.core.Core;
 import com.elvenide.structures.selection.events.SelectionEvent;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
@@ -33,20 +33,20 @@ public class SelectionManager implements Listener {
         if (event.getClickedBlock() != null && event.getAction().isLeftClick() && !event.getPlayer().isSneaking()) {
             Location l = event.getClickedBlock().getLocation();
             if (SelectionTool.selectCorner1(event.getItem(), l))
-                ElvenideCore.text.send(event.getPlayer(), "<green>Corner #1 set to <dark_green>%d, %d, %d", l.getBlockX(), l.getBlockY(), l.getBlockZ());
+                Core.text.send(event.getPlayer(), "<green>Corner #1 set to <dark_green>{}, {}, {}", l.getBlockX(), l.getBlockY(), l.getBlockZ());
             else return;
         }
         else if (event.getClickedBlock() != null && event.getAction().isRightClick() && !event.getPlayer().isSneaking()) {
             Location l = event.getClickedBlock().getLocation();
             if (SelectionTool.selectCorner2(event.getItem(), l))
-                ElvenideCore.text.send(event.getPlayer(), "<light_purple>Corner #2 set to <dark_purple>%d, %d, %d", l.getBlockX(), l.getBlockY(), l.getBlockZ());
+                Core.text.send(event.getPlayer(), "<light_purple>Corner #2 set to <dark_purple>{}, {}, {}", l.getBlockX(), l.getBlockY(), l.getBlockZ());
             else return;
         }
 
         Selection selection = SelectionTool.getSelection(event.getItem(), event.getPlayer().getWorld());
         if (selection == null) {
             if (event.getPlayer().isSneaking())
-                ElvenideCore.text.send(event.getPlayer(), "<red>Cannot complete selection; both corners must be selected.");
+                Core.text.send(event.getPlayer(), "<red>Cannot complete selection; both corners must be selected.");
             return;
         }
 

@@ -1,8 +1,8 @@
 package com.elvenide.structures.elevators.commands;
 
-import com.elvenide.core.providers.commands.SubCommand;
-import com.elvenide.core.providers.commands.SubCommandBuilder;
-import com.elvenide.core.providers.commands.SubCommandContext;
+import com.elvenide.core.providers.command.SubCommand;
+import com.elvenide.core.providers.command.SubCommandBuilder;
+import com.elvenide.core.providers.command.SubCommandContext;
 import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.elevators.Elevator;
 import org.jetbrains.annotations.NotNull;
@@ -32,14 +32,14 @@ public class ElevatorRunCommand implements SubCommand {
             .ifTrue(!ElvenideStructures.elevators().getNames(context.player().getWorld()).contains(name))
             .thenEnd("An elevator with that name does not exist!")
             .orIfTrue(creationListener != null && creationName.equals(name))
-            .thenEnd("That elevator is currently being edited! Wait for %s to finish.", creatorName);
+            .thenEnd("That elevator is currently being edited! Wait for {} to finish.", creatorName);
 
         Elevator e = ElvenideStructures.elevators().get(name, context.player().getWorld());
         try {
             assert e != null;
             e.move();
         } catch (IllegalStateException ex) {
-            context.args.ifTrue(true).thenEnd(ex.getMessage());
+            context.end(ex.getMessage());
         }
     }
 }

@@ -1,8 +1,9 @@
 package com.elvenide.structures.elevators;
 
-import com.elvenide.core.ElvenideCore;
-import com.elvenide.core.providers.config.AbstractSection;
+import com.elvenide.core.Core;
+import com.elvenide.core.providers.config.ConfigSection;
 import com.elvenide.core.providers.config.Config;
+import com.elvenide.structures.StructureManager;
 import com.elvenide.structures.elevators.events.ElevatorEndEvent;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -18,34 +19,42 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
-public class ElevatorManager implements Listener {
+public class ElevatorManager implements Listener, StructureManager<Elevator> {
 
     private final HashMap<String, HashMap<String, Elevator>> worldElevators = new HashMap<>();
     private final HashSet<UUID> usersOnCooldown = new HashSet<>();
 
     private Config getConfig(World world) {
-        return ElvenideCore.config.get("../../" + world.getName() + "/elevators.db");
+        return Core.config.get("../../" + world.getName() + "/structures.db");
     }
 
-    private List<Elevator> getAll(World world) {
+    private @NotNull List<Elevator> getAll(World world) {
         if (worldElevators.containsKey(world.getName()))
             return worldElevators.get(world.getName()).values().stream().toList();
 
         HashMap<String, Elevator> elevators = new HashMap<>();
-        Config data = getConfig(world);
+        Config config = getConfig(world);
+        ConfigSection data = config.getSection("elevators");
 
-        for (String key : data.getKeys()) {
-            elevators.put(key, new Elevator(data.section(key)));
-        }
+        if (data != null)
+            for (String key : data.getKeys()) {
+                elevators.put(key, new Elevator(data.getSection(key)));
+            }
 
         worldElevators.put(world.getName(), elevators);
         return elevators.values().stream().toList();
     }
 
-    public List<String> getNames(World world) {
-        return getAll(world).stream().map(Elevator::getName).toList();
+    private @NotNull HashMap<String, Elevator> getAllMap(World world) {
+        getAll(world);
+        return worldElevators.getOrDefault(world.getName(), new HashMap<>());
     }
 
+    public List<String> getNames(World world) {
+        return getAllMap(world).keySet().stream().toList();
+    }
+
+    @Override
     public @Nullable Elevator getNearby(Location loc) {
         List<Elevator> elevators = getAll(loc.getWorld());
 
@@ -59,24 +68,34 @@ public class ElevatorManager implements Listener {
     }
 
     public @Nullable Elevator get(String name, World world) {
-        return worldElevators.getOrDefault(world.getName(), new HashMap<>()).get(name);
+        return getAllMap(world).get(name);
     }
 
     public @NotNull Elevator create(String name, double speed, World world) {
-        Config elevators = getConfig(world);
-        AbstractSection elevator = elevators.addSection(name);
-        elevator.set("speed", speed);
-        elevators.save();
+        Config config = getConfig(world);
+        ConfigSection elevators = config.getSection("elevators");
+        if (elevators == null)
+            elevators = config.createSection("elevators");
 
-        return new Elevator(elevator);
+        ConfigSection elevator = elevators.getSection(name);
+        elevator.set("speed", speed);
+        config.save();
+
+        Elevator e = new Elevator(elevator);
+        worldElevators.getOrDefault(world.getName(), new HashMap<>()).put(name, e);
+        return e;
     }
 
     public void delete(String name, World world) {
-        Config elevators = getConfig(world);
-        elevators.remove(name);
-        elevators.save();
+        Config config = getConfig(world);
+        ConfigSection elevators = config.getSection("elevators");
+        if (elevators == null)
+            return;
 
-        worldElevators.get(world.getName()).remove(name);
+        elevators.set(name, null);
+        config.save();
+
+        getAllMap(world).remove(name);
     }
 
     @EventHandler
@@ -95,13 +114,13 @@ public class ElevatorManager implements Listener {
                 if (elevator.isOnCooldown()) {
                     if (!usersOnCooldown.contains(event.getPlayer().getUniqueId())) {
                         usersOnCooldown.add(event.getPlayer().getUniqueId());
-                        ElvenideCore.text.send(event.getPlayer(), "<red>That elevator is on cooldown for %.1f seconds.", elevator.getRemainingCooldown());
+                        Core.text.send(event.getPlayer(), "<red>That elevator is on cooldown for %.1f seconds.", elevator.getRemainingCooldown());
                     }
                     continue;
                 }
 
                 elevator.moveDelayTrigger = event.getPlayer();
-                ElvenideCore.tasks.builder()
+                Core.tasks.builder()
                     .then(task -> {
                         if (elevator.moveDelayTrigger != event.getPlayer())
                             return;
@@ -111,7 +130,7 @@ public class ElevatorManager implements Listener {
                                 usersOnCooldown.add(event.getPlayer().getUniqueId());
                                 elevator.move();
                             } catch (IllegalStateException e) {
-                                ElvenideCore.text.send(event.getPlayer(), e.getMessage());
+                                Core.text.send(event.getPlayer(), e.getMessage());
                             }
                         else
                             elevator.moveDelayTrigger = null;
@@ -124,7 +143,7 @@ public class ElevatorManager implements Listener {
 
     @EventHandler
     public void onElevatorEnd(ElevatorEndEvent event) {
-        ElvenideCore.tasks.builder()
+        Core.tasks.builder()
             .then(task -> {
                 event.getElevator().moveDelayTrigger = null;
                 for (LivingEntity e : event.getPassengers())

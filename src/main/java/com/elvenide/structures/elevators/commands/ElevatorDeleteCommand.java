@@ -1,8 +1,8 @@
 package com.elvenide.structures.elevators.commands;
 
-import com.elvenide.core.providers.commands.SubCommand;
-import com.elvenide.core.providers.commands.SubCommandBuilder;
-import com.elvenide.core.providers.commands.SubCommandContext;
+import com.elvenide.core.providers.command.SubCommand;
+import com.elvenide.core.providers.command.SubCommandBuilder;
+import com.elvenide.core.providers.command.SubCommandContext;
 import com.elvenide.structures.ElvenideStructures;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,13 +31,13 @@ public class ElevatorDeleteCommand implements SubCommand {
 
         context.args
             .ifTrue(!ElvenideStructures.elevators().getNames(context.player().getWorld()).contains(name))
-            .thenEnd("An elevator with that name does not exist!")
+            .thenEnd("An elevator with name '{}' does not exist!", name)
             .orIfTrue(creationListener != null && creationName.equals(name))
-            .thenEnd("That elevator is currently being edited! Wait for %s to finish.", creatorName)
+            .thenEnd("That elevator is currently being edited! Wait for {} to finish.", creatorName)
             .orIfTrue(Objects.requireNonNull(ElvenideStructures.elevators().get(name, context.player().getWorld())).isMoving())
-            .thenEnd("Elevator '%s' is currently moving! Wait for it to finish.", name);
+            .thenEnd("Elevator '{}' is currently moving! Wait for it to finish.", name);
 
         ElvenideStructures.elevators().delete(name, context.player().getWorld());
-        context.reply("<green>Deleted elevator '%s'.", name);
+        context.reply("<green>Deleted elevator '{}'.", name);
     }
 }

@@ -1,6 +1,6 @@
 package com.elvenide.structures.selection;
 
-import com.elvenide.core.ElvenideCore;
+import com.elvenide.core.Core;
 import com.elvenide.structures.ElvenideStructures;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -36,7 +36,7 @@ public class SelectionVisualizer {
         Iterator<Location> iterator = selection.iterator();
 
         // Create visualization outline over time (50 blocks covered per tick)
-        ElvenideCore.tasks.builder()
+        Core.tasks.builder()
             .then(task -> {
                 for (int i = 0; i < 50; i++) {
                     if (!iterator.hasNext()) {

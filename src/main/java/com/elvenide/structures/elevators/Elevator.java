@@ -1,7 +1,8 @@
 package com.elvenide.structures.elevators;
 
-import com.elvenide.core.ElvenideCore;
-import com.elvenide.core.providers.config.AbstractSection;
+import com.elvenide.core.Core;
+import com.elvenide.core.providers.config.ConfigSection;
+import com.elvenide.structures.Structure;
 import com.elvenide.structures.elevators.events.ElevatorEndEvent;
 import com.elvenide.structures.elevators.events.ElevatorStartEvent;
 import com.elvenide.structures.selection.Selection;
@@ -16,15 +17,15 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-public class Elevator {
+public class Elevator implements Structure {
 
-    private final AbstractSection config;
+    private final ConfigSection config;
     private final HashSet<ElevatorBlock> elevatorBlocks = new HashSet<>();
     private boolean isMoving = false;
     private long cooldown = 0;
     Player moveDelayTrigger = null;
 
-    public Elevator(AbstractSection config) {
+    public Elevator(ConfigSection config) {
         this.config = config;
     }
 
@@ -35,8 +36,8 @@ public class Elevator {
         if (!config.contains("locations"))
             return blocks;
 
-        for (String key : config.section("locations").getKeys()) {
-            blocks.add(config.section("locations").getLocation(key));
+        for (String key : config.getSection("locations").getKeys()) {
+            blocks.add(config.getSection("locations").getLocation(key));
         }
         return blocks;
     }
@@ -91,7 +92,7 @@ public class Elevator {
     public int getCarriageSize() {
         if (!config.contains("locations"))
             return 0;
-        return config.section("locations").getKeys().size();
+        return config.getSection("locations").getKeys().size();
     }
 
     /// Get the base floor Y level of this elevator
@@ -107,7 +108,7 @@ public class Elevator {
     /// Set the current floor Y level of this elevator
     public void setCurrentY(int y) {
         config.set("current-level", y);
-        config.root().save();
+        config.getRoot().save();
     }
 
     /// If a block is either passable or can be opened to pass through
@@ -212,8 +213,8 @@ public class Elevator {
     public void setCarriageBlocks(Selection carriage) throws IllegalStateException {
         int baseY = 100000;
         if (!config.contains("locations"))
-            config.addSection("locations");
-        AbstractSection locations = config.section("locations");
+            config.createSection("locations");
+        ConfigSection locations = config.getSection("locations");
         assert locations != null;
 
         for (Location loc : carriage) {
@@ -229,12 +230,35 @@ public class Elevator {
             throw new IllegalStateException("No valid base Y level found in selection.");
 
         config.set("base-level", baseY);
-        config.root().save();
+        config.getRoot().save();
     }
 
     /// Check if a location is within range of the floors of this elevator
+    @Override
     public boolean isNearby(Location loc) {
-        // TODO check if within 3 blocks of any elevator carriage block (at base Y or destination Y)
+        int currentY = getCurrentY();
+        int destinationY;
+        try {
+            destinationY = getDestinationY();
+        } catch (IllegalStateException e) {
+            return false;
+        }
+
+        if (Math.abs(currentY - loc.getBlockY()) > 3 && Math.abs(destinationY - loc.getBlockY()) > 3)
+            return false;
+
+        for (Location baseBlock : getBaseBlocks()) {
+            Location adjustedBaseBlock = baseBlock.clone();
+
+            adjustedBaseBlock.setY(currentY);
+            if (loc.distance(adjustedBaseBlock) <= 3)
+                return true;
+
+            adjustedBaseBlock.setY(destinationY);
+            if (loc.distance(adjustedBaseBlock) <= 3)
+                return true;
+        }
+
         return false;
     }
 
@@ -289,7 +313,7 @@ public class Elevator {
         }
 
         if (isOnCooldown())
-            throw new IllegalStateException("<red>You must wait %f seconds before re-running this elevator.".formatted(getReuseCooldown()));
+            throw new IllegalStateException("<red>You must wait {} seconds before re-running this elevator.".formatted(getReuseCooldown()));
 
         int targetY;
 
@@ -311,7 +335,7 @@ public class Elevator {
         for (ElevatorBlock block : getElevatorBlocks())
             block.spawn(targetY);
 
-        ElvenideCore.tasks.builder()
+        Core.tasks.builder()
             .then(task -> {
                 ElevatorBlock elevatorBlock = getElevatorBlocks().iterator().next();
                 if (elevatorBlock.atDestination || !elevatorBlock.isValid()) {
@@ -328,4 +352,12 @@ public class Elevator {
             .repeat(0L, 1L);
     }
 
+    @Override
+    public void onNearbySwitchUsed(Player user, Location loc) {
+        try {
+            moveToNearestFloor(loc.clone());
+        } catch (IllegalStateException e) {
+            Core.text.send(user, e.getMessage());
+        }
+    }
 }

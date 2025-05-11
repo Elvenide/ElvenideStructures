@@ -1,6 +1,6 @@
 package com.elvenide.structures.selection;
 
-import com.elvenide.core.ElvenideCore;
+import com.elvenide.core.Core;
 import com.elvenide.structures.Keys;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 public class SelectionTool {
 
     public ItemStack create() {
-        return ElvenideCore.items.builder(Material.NETHERITE_AXE)
+        return Core.items.builder(Material.NETHERITE_AXE)
             .name("<smooth_purple>Elvenide's Selection Tool")
             .data(Keys.SELECTION_TOOL, PersistentDataType.BOOLEAN, true)
             .lore("<yellow>Left-click <gray>to select corner #1")
@@ -22,7 +22,7 @@ public class SelectionTool {
     }
 
     public static boolean is(ItemStack item) {
-        return ElvenideCore.items.hasData(item, Keys.SELECTION_TOOL);
+        return Core.items.hasData(item, Keys.SELECTION_TOOL);
     }
 
     /// Returns false if the corner is already selected
@@ -31,7 +31,7 @@ public class SelectionTool {
         if (prevCorner1 != null && prevCorner1.equals(corner1))
             return false;
 
-        ElvenideCore.items.builder(item)
+        Core.items.builder(item)
             .data(Keys.SELECTION_CORNER_1, PersistentDataType.INTEGER_ARRAY, new int[] { corner1.getBlockX(), corner1.getBlockY(), corner1.getBlockZ() });
 
         return true;
@@ -43,25 +43,25 @@ public class SelectionTool {
         if (prevCorner2 != null && prevCorner2.equals(corner2))
             return false;
 
-        ElvenideCore.items.builder(item)
+        Core.items.builder(item)
             .data(Keys.SELECTION_CORNER_2, PersistentDataType.INTEGER_ARRAY, new int[] { corner2.getBlockX(), corner2.getBlockY(), corner2.getBlockZ() });
 
         return true;
     }
 
     private static Location getCorner1(ItemStack item, World world) {
-        if (!ElvenideCore.items.hasData(item, Keys.SELECTION_CORNER_1))
+        if (!Core.items.hasData(item, Keys.SELECTION_CORNER_1))
             return null;
 
-        int[] corner1Coords = ElvenideCore.items.getData(item, Keys.SELECTION_CORNER_1, PersistentDataType.INTEGER_ARRAY);
+        int[] corner1Coords = Core.items.getData(item, Keys.SELECTION_CORNER_1, PersistentDataType.INTEGER_ARRAY);
         return new Location(world, corner1Coords[0], corner1Coords[1], corner1Coords[2]);
     }
 
     private static Location getCorner2(ItemStack item, World world) {
-        if (!ElvenideCore.items.hasData(item, Keys.SELECTION_CORNER_2))
+        if (!Core.items.hasData(item, Keys.SELECTION_CORNER_2))
             return null;
 
-        int[] corner2Coords = ElvenideCore.items.getData(item, Keys.SELECTION_CORNER_2, PersistentDataType.INTEGER_ARRAY);
+        int[] corner2Coords = Core.items.getData(item, Keys.SELECTION_CORNER_2, PersistentDataType.INTEGER_ARRAY);
         return new Location(world, corner2Coords[0], corner2Coords[1], corner2Coords[2]);
     }
 

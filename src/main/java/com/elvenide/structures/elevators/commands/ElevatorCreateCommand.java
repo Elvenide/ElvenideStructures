@@ -1,9 +1,9 @@
 package com.elvenide.structures.elevators.commands;
 
-import com.elvenide.core.ElvenideCore;
-import com.elvenide.core.providers.commands.SubCommand;
-import com.elvenide.core.providers.commands.SubCommandBuilder;
-import com.elvenide.core.providers.commands.SubCommandContext;
+import com.elvenide.core.Core;
+import com.elvenide.core.providers.command.SubCommand;
+import com.elvenide.core.providers.command.SubCommandBuilder;
+import com.elvenide.core.providers.command.SubCommandContext;
 import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.elevators.Elevator;
 import com.elvenide.structures.selection.events.SelectionEvent;
@@ -44,7 +44,7 @@ public class ElevatorCreateCommand implements SubCommand {
             .ifTrue(ElvenideStructures.elevators().getNames(context.player().getWorld()).contains(name))
             .thenEnd("An elevator with that name already exists!")
             .orIfTrue(creationListener != null)
-            .thenEnd("Only one elevator can be edited at a time! Wait for %s to finish.", creatorName);
+            .thenEnd("Only one elevator can be edited at a time! Wait for {} to finish.", creatorName);
 
         context.player().give(new SelectionTool().create());
         context.reply("<green>Use the <smooth_purple>Selection Tool</smooth_purple> to select the elevator's carriage, which will move up and down.");
@@ -62,9 +62,9 @@ public class ElevatorCreateCommand implements SubCommand {
 
                 try {
                     e.setCarriageBlocks(event.selection());
-                    context.reply("<green>Created elevator '%s' with %d-block carriage!", e.getName(), e.getCarriageSize());
+                    context.reply("<green>Created elevator '{}' with {}-block carriage!", e.getName(), e.getCarriageSize());
                 } catch (IllegalStateException ex) {
-                    context.reply("<red>Failed to create elevator '%s': There is no space for players to stand in your elevator!", e.getName());
+                    context.reply("<red>Failed to create elevator '{}': There is no space for players to stand in your elevator!", e.getName());
                 }
 
                 HandlerList.unregisterAll(this);
@@ -87,7 +87,7 @@ public class ElevatorCreateCommand implements SubCommand {
                     creationListener = null;
                     creatorName = "";
                     HandlerList.unregisterAll(this);
-                    ElvenideCore.text.send(event.getPlayer(), "<red>Elevator creation process cancelled due to world change.");
+                    Core.text.send(event.getPlayer(), "<red>Elevator creation process cancelled due to world change.");
                 }
             }
         };

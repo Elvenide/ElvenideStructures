@@ -79,7 +79,7 @@
         <dependency>
             <groupId>com.elvenide</groupId>
             <artifactId>ElvenideCore</artifactId>
-            <version>0.0.15-dev-1</version>
+            <version>0.0.15-dev-3</version>
         </dependency>
     </dependencies>
 </project>
