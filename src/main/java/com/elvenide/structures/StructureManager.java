@@ -1,6 +1,5 @@
 package com.elvenide.structures;
 
-import com.elvenide.core.Core;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -19,7 +18,6 @@ public interface StructureManager<T extends Structure> {
     static void useSwitch(Player user, Location loc) {
         Structure structure = getNearbyStructure(loc);
         if (structure != null)
-            Core.text.send(user, "<green>IS NEAR STRUCTURE.");
-//            structure.onNearbySwitchUsed(user, loc);
+            structure.onNearbySwitchUsed(user, loc);
     }
 }

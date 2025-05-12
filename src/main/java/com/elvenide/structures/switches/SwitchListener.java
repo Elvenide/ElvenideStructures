@@ -1,6 +1,5 @@
 package com.elvenide.structures.switches;
 
-import com.elvenide.core.Core;
 import com.elvenide.structures.StructureManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -27,8 +26,6 @@ public class SwitchListener implements Listener {
             case PHYSICAL -> {
                 if (!Tag.PRESSURE_PLATES.isTagged(block.getType()) && block.getType() != Material.TRIPWIRE)
                     return;
-
-                Core.text.send(event.getPlayer(), "<gold>Plate switch pressed.");
             }
             case RIGHT_CLICK_BLOCK -> {
                 BlockData data = block.getBlockData();
@@ -39,7 +36,6 @@ public class SwitchListener implements Listener {
                 if (s.isPowered())
                     return;
 
-                Core.text.send(event.getPlayer(), "<light_purple>Hand switch pressed.");
                 location = location.clone().subtract(0, 1, 0);
             }
             default -> {

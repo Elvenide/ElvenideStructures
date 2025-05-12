@@ -313,7 +313,7 @@ public class Elevator implements Structure {
         }
 
         if (!ignoreCooldown && isOnCooldown())
-            throw new IllegalStateException("<red>You must wait {} seconds before re-running this elevator.".formatted(getReuseCooldown()));
+            throw new IllegalStateException(Core.text.format("<red>You must wait {} seconds before re-running this elevator.", getReuseCooldown()));
 
         int targetY;
 
