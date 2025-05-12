@@ -32,7 +32,11 @@ public class SwitchListener implements Listener {
             }
             case RIGHT_CLICK_BLOCK -> {
                 BlockData data = block.getBlockData();
-                if (!(data instanceof Switch))
+                if (!(data instanceof Switch s))
+                    return;
+
+                // If the button is already pressed or the lever is already on, ignore
+                if (s.isPowered())
                     return;
 
                 Core.text.send(event.getPlayer(), "<light_purple>Hand switch pressed.");

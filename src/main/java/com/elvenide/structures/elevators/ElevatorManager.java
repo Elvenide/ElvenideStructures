@@ -131,6 +131,7 @@ public class ElevatorManager implements Listener, StructureManager<Elevator> {
                                 elevator.move();
                             } catch (IllegalStateException e) {
                                 Core.text.send(event.getPlayer(), e.getMessage());
+                                elevator.moveDelayTrigger = null;
                             }
                         else
                             elevator.moveDelayTrigger = null;

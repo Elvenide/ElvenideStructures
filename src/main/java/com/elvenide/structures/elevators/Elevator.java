@@ -249,12 +249,7 @@ public class Elevator implements Structure {
 
         for (Location baseBlock : getBaseBlocks()) {
             Location adjustedBaseBlock = baseBlock.clone();
-
-            adjustedBaseBlock.setY(currentY);
-            if (loc.distance(adjustedBaseBlock) <= 3)
-                return true;
-
-            adjustedBaseBlock.setY(destinationY);
+            adjustedBaseBlock.setY(loc.getY());
             if (loc.distance(adjustedBaseBlock) <= 3)
                 return true;
         }
@@ -306,13 +301,18 @@ public class Elevator implements Structure {
             throw new IllegalStateException("<red>The elevator is already on this floor.");
     }
 
-    /// Moves the elevator carriage from one floor to another
+    /// Moves the elevator carriage from one floor to another, if not on cooldown
     public void move() throws IllegalStateException {
+        move(false);
+    }
+
+    /// Moves the elevator carriage from one floor to another
+    public void move(boolean ignoreCooldown) throws IllegalStateException {
         if (isMoving) {
             throw new IllegalStateException("<red>The elevator is already moving.");
         }
 
-        if (isOnCooldown())
+        if (!ignoreCooldown && isOnCooldown())
             throw new IllegalStateException("<red>You must wait {} seconds before re-running this elevator.".formatted(getReuseCooldown()));
 
         int targetY;
@@ -323,7 +323,7 @@ public class Elevator implements Structure {
             throw new IllegalStateException("<red>Failed to move elevator: Could not find a valid destination floor that would connect to the elevator's entrances.");
         }
 
-        if (!new ElevatorStartEvent(this).callEvent())
+        if (new ElevatorStartEvent(this).callCoreEvent().isCancelled())
             return;
 
         isMoving = true;

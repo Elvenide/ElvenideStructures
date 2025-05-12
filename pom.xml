@@ -40,6 +40,23 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <minimizeJar>true</minimizeJar>
+                    <relocations>
+                        <relocation>
+                            <pattern>com.elvenide.core</pattern>
+                            <shadedPattern>com.elvenide.structures.core</shadedPattern>
+                        </relocation>
+                    </relocations>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/**</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -79,7 +96,7 @@
         <dependency>
             <groupId>com.elvenide</groupId>
             <artifactId>ElvenideCore</artifactId>
-            <version>0.0.15-dev-3</version>
+            <version>0.0.15-dev-5</version>
         </dependency>
     </dependencies>
 </project>

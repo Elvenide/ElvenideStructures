@@ -5,9 +5,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.BlockDisplay;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -17,7 +15,7 @@ import java.util.List;
 public class ElevatorBlock {
 
     private BlockData blockData;
-    private BlockDisplay display;
+    private FallingBlock block;
     private final Location currentLocation;
     private final Elevator parent;
     private final HashSet<LivingEntity> previousPassengers = new HashSet<>();
@@ -40,6 +38,10 @@ public class ElevatorBlock {
         currentLocation.setY(y);
     }
 
+    private Entity blockEntity() {
+        return block;
+    }
+
     public void spawn(int targetY) {
         if (isBaseBlock())
             for (LivingEntity e : getEntitiesOnBlock()) {
@@ -54,10 +56,14 @@ public class ElevatorBlock {
 
         this.blockData = getCurrentLocation().getBlock().getBlockData();
         getCurrentLocation().toBlockLocation().getBlock().setBlockData(Material.AIR.createBlockData(), false);
-        this.display = getCurrentLocation().getWorld().spawn(getCurrentLocation(), BlockDisplay.class, b -> {
-            b.setBlock(blockData);
-            b.setInterpolationDelay(0);
-            b.setTeleportDuration(1);
+
+        Location l = getCurrentLocation().toCenterLocation();
+        l.subtract(0, 0.5, 0);
+        this.block = getCurrentLocation().getWorld().spawn(l, FallingBlock.class, b -> {
+            b.setBlockData(blockData);
+            b.shouldAutoExpire(false);
+            b.setCancelDrop(true);
+            b.setGravity(false);
         });
 
         atDestination = false;
@@ -79,7 +85,7 @@ public class ElevatorBlock {
 
         // Move elevator
         setCurrentY(y);
-        display.teleport(getCurrentLocation());
+        blockEntity().setVelocity(new Vector(0, blocksPerTick, 0));
 
         // Move any entities on elevator
         if (isBaseBlock()) {
@@ -94,12 +100,15 @@ public class ElevatorBlock {
                         p.setAllowFlight(false);
                 }
 
-                e.setGravity(true);
+                if (!e.hasGravity())
+                    e.setGravity(true);
             }
             previousPassengers.clear();
 
             for (LivingEntity e : currentPassengers) {
-                e.setGravity(false);
+                if (e.hasGravity())
+                    e.setGravity(false);
+
                 if (e instanceof Player p) {
                     p.setAllowFlight(true);
                     p.setFlying(false);
@@ -116,18 +125,6 @@ public class ElevatorBlock {
                 previousPassengers.add(e);
 
                 if (e instanceof Player) {
-                    // If too far below expected location, teleport player
-                    if (e.getLocation().getY() < getCurrentLocation().getY() + 0.8) {
-                        Location entityLoc = e.getLocation().clone();
-                        double teleportY = y + 1 - 0.1;
-                        entityLoc.setY(teleportY);
-                        e.teleport(entityLoc, TeleportFlag.EntityState.RETAIN_PASSENGERS, TeleportFlag.EntityState.RETAIN_VEHICLE);
-                        e.setVelocity(new Vector(0, 0, 0));
-                        continue;
-                    }
-
-                    // Otherwise, move player using smooth velocity
-                    e.setVelocity(new Vector(0, 0, 0));
                     e.setVelocity(new Vector(0, blocksPerTick, 0));
                 }
                 else {
@@ -158,8 +155,8 @@ public class ElevatorBlock {
 
         getCurrentLocation().toBlockLocation().getBlock().setBlockData(blockData, false);
 
-        if (display != null) {
-            display.remove();
+        if (blockEntity() != null) {
+            blockEntity().remove();
         }
 
         atDestination = false;
@@ -170,7 +167,7 @@ public class ElevatorBlock {
     }
 
     public boolean isValid() {
-        return display != null && display.isValid();
+        return blockEntity() != null && blockEntity().isValid();
     }
 
     public boolean isBaseBlock() {
