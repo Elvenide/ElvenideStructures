@@ -10,15 +10,13 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-
 public class SlidingDoorSelectionTool extends SelectionTool {
 
     private @Nullable BlockFace slideDirection = null;
 
     @Override
     protected ItemBuilder create(ItemBuilder builder) {
-        return builder.lore("<yellow>Shift-click <gray>to change door sliding direction.");
+        return builder.lore("<yellow>Shift-click <gray>to set door sliding direction to your facing direction.");
     }
 
     @Override
@@ -31,21 +29,30 @@ public class SlidingDoorSelectionTool extends SelectionTool {
 
     @Override
     protected void onShiftLeftClick(Player player) {
-        cycleSlideDirection(player, false);
+        setSlideDirection(player);
     }
 
     @Override
     protected void onShiftRightClick(Player player) {
-        cycleSlideDirection(player, true);
+        setSlideDirection(player);
     }
 
-    private void cycleSlideDirection(Player player, boolean forward) {
-        List<BlockFace> axes = List.of(BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN);
-
-        if (slideDirection == null)
-            slideDirection = axes.getFirst();
+    private void setSlideDirection(Player player) {
+        Vector dir = player.getEyeLocation().getDirection();
+        double absY = Math.abs(dir.getY());
+        if (absY > 0.7)
+            slideDirection = dir.getY() > 0 ? BlockFace.UP : BlockFace.DOWN;
         else
-            slideDirection = axes.get((axes.indexOf(slideDirection) + (forward ? 1 : -1)) % axes.size());
+            slideDirection = player.getFacing();
+
+        // Slide direction should be UP, DOWN, NORTH, SOUTH, EAST, WEST
+        // If it is any other option, set it to the closest axis
+        switch (slideDirection) {
+            case NORTH_EAST, NORTH_NORTH_EAST, NORTH_NORTH_WEST -> slideDirection = BlockFace.NORTH;
+            case SOUTH_EAST, SOUTH_SOUTH_EAST, SOUTH_SOUTH_WEST -> slideDirection = BlockFace.SOUTH;
+            case SOUTH_WEST, WEST_SOUTH_WEST, WEST_NORTH_WEST -> slideDirection = BlockFace.WEST;
+            case NORTH_WEST, EAST_NORTH_EAST, EAST_SOUTH_EAST -> slideDirection = BlockFace.EAST;
+        }
 
         Core.text.send(player, "<aqua>Door sliding direction set to <dark_aqua>{}.", slideDirection.name());
     }

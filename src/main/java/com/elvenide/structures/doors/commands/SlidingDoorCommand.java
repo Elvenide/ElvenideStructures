@@ -52,7 +52,7 @@ public class SlidingDoorCommand implements SubCommand {
         context.reply("<green>Use the <smooth_purple>Selection Tool</smooth_purple> to select the door.");
         context.reply("<yellow>Left-click <gray>to select corner #1.");
         context.reply("<yellow>Right-click <gray>to select opposite corner #2.");
-        context.reply("<yellow>Shift-click <gray>to set the door sliding direction.");
+        context.reply("<yellow>Shift-click <gray>to make the door slide in the direction you are facing.");
         context.reply("<yellow>Press F <gray>to finalize selection.");
 
         creatorName = context.player().getName();
