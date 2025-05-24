@@ -24,10 +24,6 @@ public class ElevatorManager implements Listener, StructureManager<Elevator> {
     private final HashMap<String, HashMap<String, Elevator>> worldElevators = new HashMap<>();
     private final HashSet<UUID> usersOnCooldown = new HashSet<>();
 
-    private Config getConfig(World world) {
-        return Core.config.get("../../" + world.getName() + "/structures.db");
-    }
-
     private @NotNull List<Elevator> getAll(World world) {
         if (worldElevators.containsKey(world.getName()))
             return worldElevators.get(world.getName()).values().stream().toList();

@@ -1,6 +1,7 @@
 package com.elvenide.structures.selection;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -8,9 +9,11 @@ import java.util.Iterator;
 import java.util.List;
 
 public class Selection implements Iterable<Location> {
+    private final World world;
     private final List<Location> positions = new ArrayList<>();
 
     public Selection(Location firstPos, Location secondPos) {
+        this.world = firstPos.getWorld();
         firstPos = firstPos.toBlockLocation();
         secondPos = secondPos.toBlockLocation();
 
@@ -40,5 +43,9 @@ public class Selection implements Iterable<Location> {
                 return positions.get(index++);
             }
         };
+    }
+
+    public World getWorld() {
+        return world;
     }
 }

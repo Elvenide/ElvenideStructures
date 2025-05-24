@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Shulker;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -75,6 +76,7 @@ public class SelectionVisualizer {
         shulkers.clear();
     }
 
+    @Contract("!null, _ -> !null")
     public static @Nullable SelectionVisualizer getNew(@Nullable Selection selection, Player player) {
         if (selection == null)
             return null;
