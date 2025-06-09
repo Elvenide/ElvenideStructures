@@ -47,7 +47,8 @@ public class ElevatorBlock {
             for (LivingEntity e : getEntitiesOnBlock()) {
                 if (e instanceof Player p) {
                     p.setAllowFlight(true);
-                    p.setFlying(false);
+                    p.setFlySpeed(0);
+                    p.setFlying(true);
                 }
                 e.setGravity(false);
 
@@ -96,6 +97,7 @@ public class ElevatorBlock {
 
                 if (e instanceof Player p) {
                     p.setFlying(false);
+                    p.setFlySpeed(0.1f);
                     if (p.getGameMode() != GameMode.CREATIVE)
                         p.setAllowFlight(false);
                 }
@@ -111,10 +113,12 @@ public class ElevatorBlock {
 
                 if (e instanceof Player p) {
                     p.setAllowFlight(true);
-                    p.setFlying(false);
+                    p.setFlySpeed(0);
+                    p.setFlying(true);
                 }
                 if (atDestination && e instanceof Player p) {
                     p.setFlying(false);
+                    p.setFlySpeed(0.1f);
                     if (p.getGameMode() != GameMode.CREATIVE)
                         p.setAllowFlight(false);
                 }
