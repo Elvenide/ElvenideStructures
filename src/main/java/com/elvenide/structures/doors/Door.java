@@ -55,6 +55,16 @@ public interface Door extends Structure {
     /// Sets whether the door is currently moving
     void setMoving(boolean moving);
 
+    /// Returns whether the given location is a door block
+    default boolean isDoorBlock(Location loc) {
+        for (DoorBlock block : getBlocks()) {
+            if (block.initialLocation().equals(loc))
+                return true;
+        }
+
+        return false;
+    }
+
     /// Deletes all block displays in the door and replaces them with the initial blocks
     default void reset() {
         for (DoorBlock block : getBlocks()) {

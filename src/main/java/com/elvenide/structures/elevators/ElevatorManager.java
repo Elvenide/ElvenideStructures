@@ -3,8 +3,14 @@ package com.elvenide.structures.elevators;
 import com.elvenide.core.Core;
 import com.elvenide.core.providers.config.ConfigSection;
 import com.elvenide.core.providers.config.Config;
+import com.elvenide.core.providers.event.CoreEventHandler;
+import com.elvenide.core.providers.event.CoreEventPriority;
+import com.elvenide.core.providers.event.CoreListener;
+import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.StructureManager;
+import com.elvenide.structures.doors.Door;
 import com.elvenide.structures.elevators.events.ElevatorEndEvent;
+import com.elvenide.structures.elevators.events.ElevatorStartEvent;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
@@ -14,12 +20,9 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
-public class ElevatorManager implements Listener, StructureManager<Elevator> {
+public class ElevatorManager implements Listener, CoreListener, StructureManager<Elevator> {
 
     private final HashMap<String, HashMap<String, Elevator>> worldElevators = new HashMap<>();
     private final HashSet<UUID> usersOnCooldown = new HashSet<>();
@@ -138,14 +141,61 @@ public class ElevatorManager implements Listener, StructureManager<Elevator> {
         }
     }
 
-    @EventHandler
+    @CoreEventHandler(priority = CoreEventPriority.EARLIEST)
     public void onElevatorEnd(ElevatorEndEvent event) {
+        // Find a door near any of the target-level entry locations
+        @Nullable Door door = event.getCurrentEntryLocations().stream()
+            .map(loc -> ElvenideStructures.doors().getNearby(loc))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+
+        // Open the door and any adjacent door, if found
+        if (door != null && !door.isOpen()) {
+            Door adjacent = ElvenideStructures.doors().getAdjacent(door);
+            door.open();
+            if (adjacent != null)
+                adjacent.open();
+        }
+
+        // Wait at least 8 seconds to end move delay trigger and resume cooldown messages
         Core.tasks.builder()
             .then(task -> {
-                event.getElevator().moveDelayTrigger = null;
+                event.elevator().moveDelayTrigger = null;
                 for (LivingEntity e : event.getPassengers())
                     usersOnCooldown.remove(e.getUniqueId());
             })
-            .delay(8 * 20);
+            .delay(8 * 20 + (door != null ? door.getMoveDuration() : 0L));
+    }
+
+    @CoreEventHandler(priority = CoreEventPriority.LATEST, ignoreCancelled = true)
+    public void onElevatorStart(ElevatorStartEvent event) {
+        // Find a door near any of the base-level entry locations
+        @Nullable Door door = event.getCurrentEntryLocations().stream()
+            .map(loc -> ElvenideStructures.doors().getNearby(loc))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+
+        // Ignore if no door found or if door is closed
+        if (door == null || !door.isOpen())
+            return;
+
+        // Cancel event
+        event.setCancelled(true);
+
+        // Close the door and any adjacent door
+        Door adjacent = ElvenideStructures.doors().getAdjacent(door);
+        door.close();
+        if (adjacent != null)
+            adjacent.close();
+
+        // Wait until door closed, then run elevator again
+        // (We can safely ignore the cooldown, as the cooldown must be over to reach this point)
+        Core.tasks.builder()
+            .then(task -> {
+                event.elevator().move(true);
+            })
+            .delay(door.getMoveDuration() + 5L);
     }
 }

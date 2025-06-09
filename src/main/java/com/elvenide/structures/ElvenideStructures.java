@@ -23,7 +23,8 @@ public final class ElvenideStructures extends CorePlugin {
 
     @Override
     public void onEnabled() {
-        registerListeners(elevatorManager);
+        registerListeners(elevatorManager); // Register Bukkit listener for elevators
+        elevatorManager.register(); // Register Core listener for elevators
         registerListeners(doorManager);
         registerListeners(new SwitchListener());
 

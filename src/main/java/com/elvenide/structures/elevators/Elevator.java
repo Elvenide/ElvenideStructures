@@ -2,6 +2,7 @@ package com.elvenide.structures.elevators;
 
 import com.elvenide.core.Core;
 import com.elvenide.core.providers.config.ConfigSection;
+import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.Structure;
 import com.elvenide.structures.elevators.events.ElevatorEndEvent;
 import com.elvenide.structures.elevators.events.ElevatorStartEvent;
@@ -56,7 +57,7 @@ public class Elevator implements Structure {
     }
 
     /// Gets the block locations that are adjacent to the entrance(s) of this elevator on the base-level
-    private HashSet<Location> getEntryAdjacentBlocks() {
+    public HashSet<Location> getEntryAdjacentBlocks() {
         HashSet<Location> groundBaseBlocks = new HashSet<>();
         HashSet<Location> allBlocks = new HashSet<>(getCarriageBlocks());
         HashSet<Location> borderBlocks = new HashSet<>();
@@ -116,8 +117,9 @@ public class Elevator implements Structure {
         return block.isPassable()
             || Tag.DOORS.isTagged(block.getType())
             || Tag.FENCE_GATES.isTagged(block.getType())
-            || Tag.TRAPDOORS.isTagged(block.getType());
-        // TODO support custom doors, which will act as elevator doors
+            || Tag.TRAPDOORS.isTagged(block.getType())
+            // Custom doors can be opened and walked through:
+            || ElvenideStructures.doors().isDoorBlock(block.getLocation());
     }
 
     /// Find a 2-block passable opening in the given direction
@@ -343,7 +345,7 @@ public class Elevator implements Structure {
                     setCurrentY(elevatorBlock.getCurrentY());
                     isMoving = false;
                     task.cancel();
-                    new ElevatorEndEvent(this).callEvent();
+                    new ElevatorEndEvent(this).callCoreEvent();
                     return;
                 }
 

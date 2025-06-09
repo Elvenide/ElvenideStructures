@@ -102,4 +102,14 @@ public class DoorManager implements Listener, StructureManager<Door> {
             return false;
         return getAllMap(world).get(name).isMoving();
     }
+
+    /// Checks if a location is part of a door (in its closed state)
+    public boolean isDoorBlock(Location loc) {
+        for (Door door : getAllMap(loc.getWorld()).values()) {
+            if (door.isDoorBlock(loc))
+                return true;
+        }
+
+        return false;
+    }
 }
