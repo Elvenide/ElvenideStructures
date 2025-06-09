@@ -162,8 +162,7 @@ public interface Door extends Structure {
     default boolean isNearby(Location loc) {
         for (DoorBlock baseBlock : getBlocks()) {
             Location adjustedBaseBlock = baseBlock.initialLocation().clone();
-            adjustedBaseBlock.setY(loc.getY());
-            if (loc.distance(adjustedBaseBlock) <= 3)
+            if (loc.distance(adjustedBaseBlock) <= 3.5)
                 return true;
         }
 

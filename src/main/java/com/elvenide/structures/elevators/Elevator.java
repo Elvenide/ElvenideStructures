@@ -8,6 +8,7 @@ import com.elvenide.structures.elevators.events.ElevatorEndEvent;
 import com.elvenide.structures.elevators.events.ElevatorStartEvent;
 import com.elvenide.structures.selection.Selection;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -112,8 +113,26 @@ public class Elevator implements Structure {
         config.getRoot().save();
     }
 
+    /// If a block is not passable
+    private boolean isSolid(Block block) {
+        // Do not consider barriers to be solid
+        if (block.getType() == Material.BARRIER)
+            return false;
+
+        // Do not consider custom door blocks to be solid
+        if (ElvenideStructures.doors().isDoorBlock(block.getLocation()))
+            return false;
+
+        return !block.isPassable();
+    }
+
     /// If a block is either passable or can be opened to pass through
     private boolean isWalkable(Block block) {
+        // Do not allow walking in structure voids
+        if (block.getType() == Material.STRUCTURE_VOID)
+            return false;
+
+        // Support passables, and various door types
         return block.isPassable()
             || Tag.DOORS.isTagged(block.getType())
             || Tag.FENCE_GATES.isTagged(block.getType())
@@ -143,7 +162,7 @@ public class Elevator implements Structure {
         // Find the closest opening in this direction, if any can be found where the elevator can travel
         for (int i = 1; i <= maxY; i++) {
             Block above = loc.getBlock().getRelative(direction, i);
-            if (!above.isPassable() && isWalkable(above.getRelative(BlockFace.UP))
+            if (isSolid(above) && isWalkable(above.getRelative(BlockFace.UP))
                 && isWalkable(above.getRelative(BlockFace.UP, 2)))
                 return above.getLocation();
         }
@@ -220,7 +239,7 @@ public class Elevator implements Structure {
         assert locations != null;
 
         for (Location loc : carriage) {
-            if (!loc.getBlock().isPassable() && isWalkable(loc.getBlock().getRelative(BlockFace.UP))
+            if (isSolid(loc.getBlock()) && isWalkable(loc.getBlock().getRelative(BlockFace.UP))
                 && isWalkable(loc.getBlock().getRelative(BlockFace.UP, 2))) {
                 baseY = Math.min(baseY, loc.getBlockY());
             }
@@ -252,7 +271,7 @@ public class Elevator implements Structure {
         for (Location baseBlock : getBaseBlocks()) {
             Location adjustedBaseBlock = baseBlock.clone();
             adjustedBaseBlock.setY(loc.getY());
-            if (loc.distance(adjustedBaseBlock) <= 3)
+            if (loc.distance(adjustedBaseBlock) <= 3.5)
                 return true;
         }
 
@@ -291,7 +310,7 @@ public class Elevator implements Structure {
         try {
             destinationY = getDestinationY();
         } catch (IllegalStateException e) {
-            throw new IllegalStateException("<red>Failed to move elevator to nearest floor: Could not find a valid destination floor that would connect to the elevator's entrances.");
+            throw new IllegalStateException("<red>✖ Failed to move elevator to nearest floor: Could not find a valid destination floor that would connect to the elevator's entrances.");
         }
 
         int currentDist = Math.abs(nearbyLoc.getBlockY() - getCurrentY());
@@ -300,7 +319,7 @@ public class Elevator implements Structure {
         if (currentDist > otherDist)
             move();
         else
-            throw new IllegalStateException("<red>The elevator is already on this floor.");
+            throw new IllegalStateException("<red>✖ The elevator is already on this floor.");
     }
 
     /// Moves the elevator carriage from one floor to another, if not on cooldown
@@ -311,18 +330,18 @@ public class Elevator implements Structure {
     /// Moves the elevator carriage from one floor to another
     public void move(boolean ignoreCooldown) throws IllegalStateException {
         if (isMoving) {
-            throw new IllegalStateException("<red>The elevator is already moving.");
+            throw new IllegalStateException("<red>✖ The elevator is already moving.");
         }
 
         if (!ignoreCooldown && isOnCooldown())
-            throw new IllegalStateException(Core.text.format("<red>You must wait {} seconds before re-running this elevator.", getReuseCooldown()));
+            throw new IllegalStateException(Core.text.format("<red>✖ You must wait %.1f seconds before re-running this elevator.", getReuseCooldown()));
 
         int targetY;
 
         try {
             targetY = getDestinationY();
         } catch (IllegalStateException e) {
-            throw new IllegalStateException("<red>Failed to move elevator: Could not find a valid destination floor that would connect to the elevator's entrances.");
+            throw new IllegalStateException("<red>✖ Failed to move elevator: Could not find a valid destination floor that would connect to the elevator's entrances.");
         }
 
         if (new ElevatorStartEvent(this).callCoreEvent().isCancelled())
@@ -360,6 +379,9 @@ public class Elevator implements Structure {
             moveToNearestFloor(loc.clone());
         } catch (IllegalStateException e) {
             Core.text.send(user, e.getMessage());
+            return;
         }
+
+        Core.text.send(user, "<smooth_blue>ℹ You've called the elevator, it will arrive soon...");
     }
 }

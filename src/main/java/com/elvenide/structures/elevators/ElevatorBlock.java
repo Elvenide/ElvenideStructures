@@ -49,8 +49,9 @@ public class ElevatorBlock {
                     p.setAllowFlight(true);
                     p.setFlySpeed(0);
                     p.setFlying(true);
+                    p.setWalkSpeed(0);
                 }
-                e.setGravity(false);
+                else e.setGravity(false);
 
                 previousPassengers.add(e);
             }
@@ -98,31 +99,33 @@ public class ElevatorBlock {
                 if (e instanceof Player p) {
                     p.setFlying(false);
                     p.setFlySpeed(0.1f);
+                    p.setWalkSpeed(0.2f);
                     if (p.getGameMode() != GameMode.CREATIVE)
                         p.setAllowFlight(false);
                 }
-
-                if (!e.hasGravity())
+                else if (!e.hasGravity())
                     e.setGravity(true);
             }
             previousPassengers.clear();
 
             for (LivingEntity e : currentPassengers) {
-                if (e.hasGravity())
-                    e.setGravity(false);
-
                 if (e instanceof Player p) {
                     p.setAllowFlight(true);
                     p.setFlySpeed(0);
+                    p.setWalkSpeed(0);
                     p.setFlying(true);
                 }
+                else if (e.hasGravity())
+                    e.setGravity(false);
+
                 if (atDestination && e instanceof Player p) {
                     p.setFlying(false);
                     p.setFlySpeed(0.1f);
+                    p.setWalkSpeed(0.2f);
                     if (p.getGameMode() != GameMode.CREATIVE)
                         p.setAllowFlight(false);
                 }
-                if (atDestination)
+                else if (atDestination)
                     e.setGravity(true);
 
                 e.setFallDistance(0);

@@ -14,6 +14,7 @@ import com.elvenide.structures.elevators.events.ElevatorStartEvent;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -113,12 +114,14 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
                 if (elevator.isOnCooldown()) {
                     if (!usersOnCooldown.contains(event.getPlayer().getUniqueId())) {
                         usersOnCooldown.add(event.getPlayer().getUniqueId());
-                        Core.text.send(event.getPlayer(), "<red>That elevator is on cooldown for %.1f seconds.", elevator.getRemainingCooldown());
+                        Core.text.send(event.getPlayer(), "<red>✖ That elevator is on cooldown for %.1f seconds.", elevator.getRemainingCooldown());
                     }
                     continue;
                 }
 
                 elevator.moveDelayTrigger = event.getPlayer();
+                Core.text.send(event.getPlayer(), "<smooth_blue>ℹ Elevator will depart in %.1f seconds...", elevator.getMoveDelay());
+
                 Core.tasks.builder()
                     .then(task -> {
                         if (elevator.moveDelayTrigger != event.getPlayer())
@@ -181,8 +184,17 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         if (door == null || !door.isOpen())
             return;
 
-        // Cancel event
-        event.setCancelled(true);
+        // Freeze all players on the elevator
+        event.getPassengers().forEach(le -> {
+            if (le instanceof Player p) {
+                p.setAllowFlight(true);
+                p.setFlySpeed(0);
+                p.setFlying(true);
+                p.setWalkSpeed(0);
+            }
+            else
+                le.setGravity(false);
+        });
 
         // Close the door and any adjacent door
         Door adjacent = ElvenideStructures.doors().getAdjacent(door);
@@ -197,5 +209,8 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
                 event.elevator().move(true);
             })
             .delay(door.getMoveDuration() + 5L);
+
+        // Cancel event
+        event.setCancelled(true);
     }
 }
