@@ -77,7 +77,7 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         if (elevators == null)
             elevators = config.createSection("elevators");
 
-        ConfigSection elevator = elevators.getSection(name);
+        ConfigSection elevator = elevators.createSection(name);
         elevator.set("speed", speed);
         config.save();
 
