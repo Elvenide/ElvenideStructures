@@ -43,6 +43,8 @@ public class ElevatorBlock {
     }
 
     public void spawn(int targetY) {
+        previousPassengers.clear();
+
         if (isBaseBlock())
             for (LivingEntity e : getEntitiesOnBlock()) {
                 if (e instanceof Player p) {
@@ -92,30 +94,16 @@ public class ElevatorBlock {
         // Move any entities on elevator
         if (isBaseBlock()) {
             HashSet<LivingEntity> currentPassengers = new HashSet<>(getEntitiesOnBlock());
-            for (LivingEntity e : previousPassengers) {
-                if (currentPassengers.contains(e))
-                    continue;
 
-                if (e instanceof Player p) {
-                    p.setFlying(false);
-                    p.setFlySpeed(0.1f);
-                    p.setWalkSpeed(0.2f);
-                    if (p.getGameMode() != GameMode.CREATIVE)
-                        p.setAllowFlight(false);
-                }
-                else if (!e.hasGravity())
-                    e.setGravity(true);
-            }
-            previousPassengers.clear();
-
+            // Handle current passengers
             for (LivingEntity e : currentPassengers) {
-                if (e instanceof Player p) {
+                if (e instanceof Player p && !previousPassengers.contains(e)) {
                     p.setAllowFlight(true);
                     p.setFlySpeed(0);
                     p.setWalkSpeed(0);
                     p.setFlying(true);
                 }
-                else if (e.hasGravity())
+                else if (e.hasGravity() && !previousPassengers.contains(e))
                     e.setGravity(false);
 
                 if (atDestination && e instanceof Player p) {
@@ -129,7 +117,9 @@ public class ElevatorBlock {
                     e.setGravity(true);
 
                 e.setFallDistance(0);
-                previousPassengers.add(e);
+
+                // Remove from previous passengers
+                previousPassengers.remove(e);
 
                 if (e instanceof Player) {
                     e.setVelocity(new Vector(0, blocksPerTick, 0));
@@ -148,6 +138,23 @@ public class ElevatorBlock {
                     e.teleport(entityLoc, TeleportFlag.EntityState.RETAIN_PASSENGERS, TeleportFlag.EntityState.RETAIN_VEHICLE);
                 }
             }
+
+            // Deal with previous passengers who are no longer on the elevator
+            for (LivingEntity e : previousPassengers) {
+                if (e instanceof Player p) {
+                    p.setFlying(false);
+                    p.setFlySpeed(0.1f);
+                    p.setWalkSpeed(0.2f);
+                    if (p.getGameMode() != GameMode.CREATIVE)
+                        p.setAllowFlight(false);
+                }
+                else if (!e.hasGravity())
+                    e.setGravity(true);
+            }
+
+            // Update previous passengers with the current passenger list
+            previousPassengers.clear();
+            previousPassengers.addAll(currentPassengers);
         }
     }
 
