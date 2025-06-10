@@ -4,6 +4,7 @@ import com.elvenide.core.Core;
 import com.elvenide.core.providers.config.ConfigSection;
 import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.Structure;
+import com.elvenide.structures.doors.Door;
 import com.elvenide.structures.elevators.events.ElevatorEndEvent;
 import com.elvenide.structures.elevators.events.ElevatorStartEvent;
 import com.elvenide.structures.selection.Selection;
@@ -12,12 +13,12 @@ import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Elevator implements Structure {
 
@@ -88,6 +89,32 @@ public class Elevator implements Structure {
         };
 
         return borderBlocks;
+    }
+
+    /// Get the block locations that are adjacent to the entrance(s) of this elevator on the current level
+    public HashSet<Location> getCurrentEntryAdjacentBlocks() {
+        return new HashSet<>(
+            getEntryAdjacentBlocks().stream()
+                .map(loc -> {
+                    Location current = loc.clone();
+                    current.setY(getCurrentY());
+                    return current;
+                }).toList()
+        );
+    }
+
+    /// Get a door that is connected to this elevator, if any
+    public @Nullable Door getConnectedDoor() {
+        return getCurrentEntryAdjacentBlocks().stream()
+            .map(loc -> ElvenideStructures.doors().getNearby(loc))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+    }
+
+    /// Get all passengers currently on this elevator
+    public Set<LivingEntity> getPassengers() {
+        return getElevatorBlocks().stream().map(ElevatorBlock::getEntitiesOnBlock).flatMap(List::stream).collect(Collectors.toSet());
     }
 
     /// Get the number of blocks in this elevator's carriage

@@ -98,6 +98,23 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         getAllMap(world).remove(name);
     }
 
+    /// Checks if any elevator is connected to the given door
+    public boolean isElevatorConnectedToDoor(Door door) {
+        for (Elevator elevator : getAll(door.getBlocks().getFirst().initialLocation().getWorld())) {
+            Door connectedDoor = elevator.getConnectedDoor();
+            if (connectedDoor == null)
+                continue;
+
+            if (connectedDoor == door)
+                return true;
+
+            Door adjacent = ElvenideStructures.doors().getAdjacent(door);
+            if (connectedDoor == adjacent)
+                return true;
+        }
+        return false;
+    }
+
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
         if (!event.hasChangedPosition())
@@ -147,11 +164,7 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
     @CoreEventHandler(priority = CoreEventPriority.EARLIEST)
     public void onElevatorEnd(ElevatorEndEvent event) {
         // Find a door near any of the target-level entry locations
-        @Nullable Door door = event.getCurrentEntryLocations().stream()
-            .map(loc -> ElvenideStructures.doors().getNearby(loc))
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElse(null);
+        @Nullable Door door = event.elevator().getConnectedDoor();
 
         // Open the door and any adjacent door, if found
         if (door != null && !door.isOpen()) {
@@ -165,7 +178,7 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         Core.tasks.builder()
             .then(task -> {
                 event.elevator().moveDelayTrigger = null;
-                for (LivingEntity e : event.getPassengers())
+                for (LivingEntity e : event.elevator().getPassengers())
                     usersOnCooldown.remove(e.getUniqueId());
             })
             .delay(8 * 20 + (door != null ? door.getMoveDuration() : 0L));
@@ -174,18 +187,14 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
     @CoreEventHandler(priority = CoreEventPriority.LATEST, ignoreCancelled = true)
     public void onElevatorStart(ElevatorStartEvent event) {
         // Find a door near any of the base-level entry locations
-        @Nullable Door door = event.getCurrentEntryLocations().stream()
-            .map(loc -> ElvenideStructures.doors().getNearby(loc))
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElse(null);
+        @Nullable Door door = event.elevator().getConnectedDoor();
 
         // Ignore if no door found or if door is closed
         if (door == null || !door.isOpen())
             return;
 
         // Freeze all players on the elevator
-        event.getPassengers().forEach(le -> {
+        event.elevator().getPassengers().forEach(le -> {
             if (le instanceof Player p) {
                 p.setAllowFlight(true);
                 p.setFlySpeed(0);

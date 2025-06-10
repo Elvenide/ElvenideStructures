@@ -67,6 +67,10 @@ public class SlidingDoorCommand implements SubCommand {
                 ElvenideStructures.unregisterListeners(creationListener);
                 creatorName = "";
                 creationListener = null;
+
+                // Open the door initially, if it's connected to an elevator
+                if (ElvenideStructures.elevators().isElevatorConnectedToDoor(door))
+                    door.open();
             }
 
             @EventHandler
