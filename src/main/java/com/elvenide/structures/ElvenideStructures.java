@@ -34,8 +34,6 @@ public final class ElvenideStructures extends CorePlugin {
         registerListeners(new SwitchListener());
 
         Core.commands.setHeader("<gradient:aqua:dark_aqua>Elvenide Structures");
-        Core.lang.common.setCommandUsagePrefix("<gray>/");
-
         Core.commands.create("elvenidestructures")
             .setAliases("estructures", "estruct")
             .setDescription("<dark_aqua>Create moving structures!")
