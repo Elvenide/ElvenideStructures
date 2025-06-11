@@ -160,9 +160,11 @@ public interface Door extends Structure {
 
     @Override
     default boolean isNearby(Location loc) {
+        double range = ElvenideStructures.doors().getConfiguredConnectionRange(loc.getWorld());
+
         for (DoorBlock baseBlock : getBlocks()) {
             Location adjustedBaseBlock = baseBlock.initialLocation().clone();
-            if (loc.distance(adjustedBaseBlock) <= 3.5)
+            if (loc.distance(adjustedBaseBlock) <= range + 0.5)
                 return true;
         }
 

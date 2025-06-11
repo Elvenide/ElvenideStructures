@@ -2,5 +2,6 @@ name: ElvenideStructures
 version: '${project.version}'
 main: com.elvenide.structures.ElvenideStructures
 api-version: '1.21'
+description: 'Creating moving structures such as sliding doors and elevators!'
 authors:
   - Elvenide

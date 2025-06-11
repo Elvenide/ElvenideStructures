@@ -87,9 +87,9 @@ public class SlidingDoor implements Door {
     }
 
     public static Door create(String name, float moveDuration, Selection selection, SlidingDoorSelectionTool tool) {
-        ConfigSection doors = ElvenideStructures.doors().getConfig(selection.getWorld()).getSection("doors");
+        ConfigSection doors = ElvenideStructures.doors().getStructures(selection.getWorld()).getSection("doors");
         if (doors == null)
-            doors = ElvenideStructures.doors().getConfig(selection.getWorld()).createSection("doors");
+            doors = ElvenideStructures.doors().getStructures(selection.getWorld()).createSection("doors");
 
         ConfigSection section = doors.createSection(name);
         section.set("move-duration", moveDuration);

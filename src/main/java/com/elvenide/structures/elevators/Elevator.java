@@ -237,12 +237,15 @@ public class Elevator implements Structure {
         try {
             destinationY = getDestinationY();
         } catch (IllegalStateException e) {
-            // Raw 5s cooldown if no destination
-            return 5;
+            // Raw 1s cooldown if no destination
+            return 1;
         }
 
-        // 20s + elevator travel time for cooldown
-        return 20 + Math.abs(getCurrentY() - destinationY)/getSpeed();
+        // Base cooldown
+        double base = ElvenideStructures.elevators().getConfiguredCooldownSecs(getCarriageBlocks().getFirst().getWorld());
+
+        // Base cooldown + elevator travel time for cooldown
+        return base + Math.abs(getCurrentY() - destinationY)/getSpeed();
     }
 
     /// Get the remaining secs before the reuse cooldown ends
@@ -292,13 +295,14 @@ public class Elevator implements Structure {
             return false;
         }
 
-        if (Math.abs(currentY - loc.getBlockY()) > 3 && Math.abs(destinationY - loc.getBlockY()) > 3)
+        double range = ElvenideStructures.elevators().getConfiguredConnectionRange(loc.getWorld());
+        if (Math.abs(currentY - loc.getBlockY()) > range && Math.abs(destinationY - loc.getBlockY()) > range)
             return false;
 
         for (Location baseBlock : getBaseBlocks()) {
             Location adjustedBaseBlock = baseBlock.clone();
             adjustedBaseBlock.setY(loc.getY());
-            if (loc.distance(adjustedBaseBlock) <= 3.5)
+            if (loc.distance(adjustedBaseBlock) <= range + 0.5)
                 return true;
         }
 

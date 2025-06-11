@@ -34,6 +34,10 @@ public class SelectionVisualizer {
         if (!shulkers.isEmpty())
             remove();
 
+        boolean enabled = ElvenideStructures.elevators().getConfiguration(selection.getWorld()).getBoolean("selection-visualizer.enabled", true);
+        if (!enabled)
+            return;
+
         Iterator<Location> iterator = selection.iterator();
 
         // Create visualization outline over time (50 blocks covered per tick)
@@ -58,7 +62,9 @@ public class SelectionVisualizer {
                         Team team = board.getTeam("elvenide_structures_selection");
                         if (team == null)
                             team = board.registerNewTeam("elvenide_structures_selection");
-                        team.color(NamedTextColor.GREEN);
+
+                        String colorName = ElvenideStructures.elevators().getConfiguration(location.getWorld()).getString("selection-visualizer.color", "GREEN");
+                        team.color(NamedTextColor.NAMES.valueOr(colorName.toLowerCase(), NamedTextColor.GREEN));
                         team.addEntity(s);
                     });
                     shulkers.add(shulker);

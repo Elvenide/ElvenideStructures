@@ -1,0 +1,30 @@
+#                                                     #
+# World-specific configuration for ElvenideStructures #
+#                                                     #
+
+
+# Settings for elevators
+elevators:
+  # Cooldown (in seconds) that must pass after an elevator is run before it can be run again
+  # Default: Wait 5 seconds before re-running elevator
+  cooldown-secs: 5
+  # Range (in blocks) that a switch or door must be within to be connected to an elevator
+  # Default: Switches (buttons, levers, etc.) and doors must be within 3 blocks of the elevator
+  connection-range: 3
+
+
+# Settings for doors
+doors:
+  # Range (in blocks) that a switch must be within to be connected to a door
+  # Default: Switches (buttons, levers, etc.) must be within 3 blocks of the door
+  connection-range: 3
+
+
+# Settings for colored outlines of selected blocks
+selection-visualizer:
+  # Whether to enable the outlines
+  # Default: Enabled (true)
+  enabled: true
+  # The color of the outlines, must be a Minecraft color name (https://minecraft.wiki/w/Formatting_codes#Color_codes)
+  # Default: Green
+  color: 'green'

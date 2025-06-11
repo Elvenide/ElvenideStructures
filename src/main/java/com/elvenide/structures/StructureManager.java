@@ -10,8 +10,12 @@ import org.jetbrains.annotations.Nullable;
 public interface StructureManager<T extends Structure> {
     @Nullable T getNearby(Location loc);
 
-    default Config getConfig(World world) {
-        return Core.config.get("../../" + world.getName() + "/structures.db");
+    default Config getStructures(World world) {
+        return Core.config.get("../../" + world.getName() + "/elvenide_structures/structures.dat");
+    }
+
+    default Config getConfiguration(World world) {
+        return Core.config.get("../../" + world.getName() + "/elvenide_structures/config.yml", "config.yml");
     }
 
     static @Nullable Structure getNearbyStructure(Location loc) {

@@ -33,7 +33,7 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
             return worldElevators.get(world.getName()).values().stream().toList();
 
         HashMap<String, Elevator> elevators = new HashMap<>();
-        Config config = getConfig(world);
+        Config config = getStructures(world);
         ConfigSection data = config.getSection("elevators");
 
         if (data != null)
@@ -48,6 +48,16 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
     private @NotNull HashMap<String, Elevator> getAllMap(World world) {
         getAll(world);
         return worldElevators.getOrDefault(world.getName(), new HashMap<>());
+    }
+
+    public double getConfiguredCooldownSecs(World world) {
+        Config config = getConfiguration(world);
+        return config.getDouble("elevators.cooldown-secs");
+    }
+
+    public double getConfiguredConnectionRange(World world) {
+        Config config = getConfiguration(world);
+        return config.getDouble("elevators.connection-range");
     }
 
     public List<String> getNames(World world) {
@@ -72,7 +82,7 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
     }
 
     public @NotNull Elevator create(String name, double speed, World world) {
-        Config config = getConfig(world);
+        Config config = getStructures(world);
         ConfigSection elevators = config.getSection("elevators");
         if (elevators == null)
             elevators = config.createSection("elevators");
@@ -87,7 +97,7 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
     }
 
     public void delete(String name, World world) {
-        Config config = getConfig(world);
+        Config config = getStructures(world);
         ConfigSection elevators = config.getSection("elevators");
         if (elevators == null)
             return;

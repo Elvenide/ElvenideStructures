@@ -27,7 +27,7 @@ public class DoorManager implements Listener, StructureManager<Door> {
             return worldDoors.get(world.getName());
 
         HashMap<String, Door> doors = new HashMap<>();
-        Config config = getConfig(world);
+        Config config = getStructures(world);
         ConfigSection data = config.getSection("doors");
 
         if (data != null)
@@ -48,6 +48,10 @@ public class DoorManager implements Listener, StructureManager<Door> {
 
         worldDoors.put(world.getName(), doors);
         return worldDoors.getOrDefault(world.getName(), new HashMap<>());
+    }
+
+    public double getConfiguredConnectionRange(World world) {
+        return getConfiguration(world).getDouble("doors.connection-range");
     }
 
     public List<String> getNames(World world) {
@@ -90,9 +94,9 @@ public class DoorManager implements Listener, StructureManager<Door> {
         Door door = getAllMap(world).remove(name);
         door.reset();
 
-        ConfigSection doors = getConfig(world).getSection("doors");
+        ConfigSection doors = getStructures(world).getSection("doors");
         if (doors == null)
-            doors = getConfig(world).createSection("doors");
+            doors = getStructures(world).createSection("doors");
         doors.setAndSave(name, null);
     }
 
