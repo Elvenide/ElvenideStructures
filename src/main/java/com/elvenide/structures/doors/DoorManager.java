@@ -2,6 +2,7 @@ package com.elvenide.structures.doors;
 
 import com.elvenide.core.providers.config.Config;
 import com.elvenide.core.providers.config.ConfigSection;
+import com.elvenide.core.providers.event.CoreListener;
 import com.elvenide.structures.StructureManager;
 import com.elvenide.structures.doors.types.SlidingDoor;
 import org.bukkit.Location;
@@ -16,7 +17,7 @@ import java.util.Objects;
 
 public class DoorManager implements Listener, StructureManager<Door> {
 
-    public static Listener creationListener = null;
+    public static CoreListener creationListener = null;
     public static String creatorName = "";
     public static String creationName = "";
 

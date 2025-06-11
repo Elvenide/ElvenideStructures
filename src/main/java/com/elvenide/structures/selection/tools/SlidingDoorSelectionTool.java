@@ -14,6 +14,10 @@ public class SlidingDoorSelectionTool extends SelectionTool {
 
     private @Nullable BlockFace slideDirection = null;
 
+    public SlidingDoorSelectionTool(Player user) {
+        super(user);
+    }
+
     @Override
     protected ItemBuilder create(ItemBuilder builder) {
         return builder.lore("<yellow>Shift-click <gray>to set door sliding direction to your facing direction.");

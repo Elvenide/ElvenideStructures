@@ -1,18 +1,16 @@
 package com.elvenide.structures.doors.commands;
 
-import com.elvenide.core.Core;
 import com.elvenide.core.providers.command.SubCommand;
 import com.elvenide.core.providers.command.SubCommandBuilder;
 import com.elvenide.core.providers.command.SubCommandContext;
+import com.elvenide.core.providers.event.CoreEventHandler;
+import com.elvenide.core.providers.event.CoreListener;
 import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.doors.Door;
 import com.elvenide.structures.doors.types.SlidingDoor;
+import com.elvenide.structures.selection.events.SelectionCancelEvent;
 import com.elvenide.structures.selection.events.SelectionEvent;
 import com.elvenide.structures.selection.tools.SlidingDoorSelectionTool;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 
 import static com.elvenide.structures.doors.DoorManager.creationListener;
@@ -47,7 +45,7 @@ public class SlidingDoorCommand implements SubCommand {
             .orIfTrue(creationListener != null)
             .thenEnd("Only one door can be edited at a time! Wait for {} to finish.", creatorName);
 
-        SlidingDoorSelectionTool tool = new SlidingDoorSelectionTool();
+        SlidingDoorSelectionTool tool = new SlidingDoorSelectionTool(context.player());
         context.player().give(tool.getItem());
         context.reply("<green>Use the <smooth_purple>Selection Tool</smooth_purple> to select the door.");
         context.reply("<yellow>Left-click <gray>to select corner #1.");
@@ -57,14 +55,14 @@ public class SlidingDoorCommand implements SubCommand {
 
         creatorName = context.player().getName();
         creationName = name;
-        creationListener = new Listener() {
-            @EventHandler
+        creationListener = new CoreListener() {
+            @CoreEventHandler
             public void onSelection(SelectionEvent event) {
                 context.player().getInventory().removeItem(event.selector().getInventory().getItemInMainHand());
                 Door door = SlidingDoor.create(name, slideDuration, event.selection(), tool);
 
                 context.reply("<green>Created door '{}' with {} blocks!", name, door.getBlocks().size());
-                ElvenideStructures.unregisterListeners(creationListener);
+                creationListener.unregister();
                 creatorName = "";
                 creationListener = null;
 
@@ -73,25 +71,15 @@ public class SlidingDoorCommand implements SubCommand {
                     door.open();
             }
 
-            @EventHandler
-            public void onLeave(PlayerQuitEvent event) {
-                if (event.getPlayer().getName().equals(creatorName)) {
+            @CoreEventHandler
+            public void onCancel(SelectionCancelEvent event) {
+                if (event.player().getName().equals(creatorName)) {
+                    creationListener.unregister();
                     creationListener = null;
                     creatorName = "";
-                    ElvenideStructures.unregisterListeners(creationListener);
-                }
-            }
-
-            @EventHandler
-            public void onWorldChange(PlayerChangedWorldEvent event) {
-                if (event.getPlayer().getName().equals(creatorName)) {
-                    creationListener = null;
-                    creatorName = "";
-                    ElvenideStructures.unregisterListeners(creationListener);
-                    Core.text.send(event.getPlayer(), "<red>Door creation process cancelled due to world change.");
                 }
             }
         };
-        ElvenideStructures.registerListeners(creationListener);
+        creationListener.register();
     }
 }

@@ -1,22 +1,19 @@
 package com.elvenide.structures.elevators.commands;
 
-import com.elvenide.core.Core;
 import com.elvenide.core.providers.command.SubCommand;
 import com.elvenide.core.providers.command.SubCommandBuilder;
 import com.elvenide.core.providers.command.SubCommandContext;
+import com.elvenide.core.providers.event.CoreEventHandler;
+import com.elvenide.core.providers.event.CoreListener;
 import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.elevators.Elevator;
+import com.elvenide.structures.selection.events.SelectionCancelEvent;
 import com.elvenide.structures.selection.events.SelectionEvent;
 import com.elvenide.structures.selection.tools.DefaultSelectionTool;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 
 public class ElevatorCreateCommand implements SubCommand {
-    static Listener creationListener = null;
+    static CoreListener creationListener = null;
     static String creatorName = "";
     static String creationName = "";
 
@@ -46,7 +43,7 @@ public class ElevatorCreateCommand implements SubCommand {
             .orIfTrue(creationListener != null)
             .thenEnd("Only one elevator can be edited at a time! Wait for {} to finish.", creatorName);
 
-        context.player().give(new DefaultSelectionTool().getItem());
+        context.player().give(new DefaultSelectionTool(context.player()).getItem());
         context.reply("<green>Use the <smooth_purple>Selection Tool</smooth_purple> to select the elevator's carriage, which will move up and down.");
         context.reply("<yellow>Left-click <gray>to select corner #1.");
         context.reply("<yellow>Right-click <gray>to select opposite corner #2.");
@@ -54,8 +51,8 @@ public class ElevatorCreateCommand implements SubCommand {
 
         creatorName = context.player().getName();
         creationName = name;
-        creationListener = new Listener() {
-            @EventHandler
+        creationListener = new CoreListener() {
+            @CoreEventHandler
             public void onSelection(SelectionEvent event) {
                 context.player().getInventory().removeItem(event.selector().getInventory().getItemInMainHand());
                 Elevator e = ElvenideStructures.elevators().create(name, speed, context.player().getWorld());
@@ -67,30 +64,20 @@ public class ElevatorCreateCommand implements SubCommand {
                     context.reply("<red>Failed to create elevator '{}': There is no space for players to stand in your elevator!", e.getName());
                 }
 
-                HandlerList.unregisterAll(this);
+                creationListener.unregister();
                 creatorName = "";
                 creationListener = null;
             }
 
-            @EventHandler
-            public void onLeave(PlayerQuitEvent event) {
-                if (event.getPlayer().getName().equals(creatorName)) {
+            @CoreEventHandler
+            public void onCancel(SelectionCancelEvent event) {
+                if (event.player().getName().equals(creatorName)) {
+                    creationListener.unregister();
                     creationListener = null;
                     creatorName = "";
-                    HandlerList.unregisterAll(this);
-                }
-            }
-
-            @EventHandler
-            public void onWorldChange(PlayerChangedWorldEvent event) {
-                if (event.getPlayer().getName().equals(creatorName)) {
-                    creationListener = null;
-                    creatorName = "";
-                    HandlerList.unregisterAll(this);
-                    Core.text.send(event.getPlayer(), "<red>Elevator creation process cancelled due to world change.");
                 }
             }
         };
-        ElvenideStructures.registerListeners(creationListener);
+        creationListener.register();
     }
 }

@@ -5,6 +5,7 @@ import com.elvenide.core.api.PublicAPI;
 import com.elvenide.core.providers.item.ItemBuilder;
 import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.Keys;
+import com.elvenide.structures.selection.events.SelectionCancelEvent;
 import com.elvenide.structures.selection.events.SelectionEvent;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -12,10 +13,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
-import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -26,13 +24,15 @@ import java.util.UUID;
 
 public abstract class SelectionTool implements Listener {
 
+    private final UUID user;
     private final UUID uuid;
     private final ItemStack item;
     protected Location corner1 = null;
     protected Location corner2 = null;
 
     @PublicAPI
-    public SelectionTool() {
+    public SelectionTool(Player user) {
+        this.user = user.getUniqueId();
         this.uuid = UUID.randomUUID();
         ItemBuilder builder = create(Core.items.builder(Material.NETHERITE_AXE)
             .name("<smooth_purple>Elvenide's Selection Tool")
@@ -153,7 +153,7 @@ public abstract class SelectionTool implements Listener {
             return;
         }
 
-        new SelectionEvent(selection, player).callEvent();
+        new SelectionEvent(selection, player).callCoreEvent();
         Objects.requireNonNull(SelectionVisualizer.getExisting(player)).remove();
         ElvenideStructures.unregisterListeners(this);
     }
@@ -236,6 +236,33 @@ public abstract class SelectionTool implements Listener {
             vis.remove();
 
         Core.text.send(event.getPlayer(), "<red>Selection cancelled due to dropping selection tool.");
+        new SelectionCancelEvent(event.getPlayer()).callCoreEvent();
+    }
+
+    @EventHandler
+    public void onLeave(PlayerQuitEvent event) {
+        if (!event.getPlayer().getUniqueId().equals(user))
+            return;
+
+        ElvenideStructures.unregisterListeners(this);
+        SelectionVisualizer vis = SelectionVisualizer.getExisting(event.getPlayer());
+        if (vis != null)
+            vis.remove();
+        new SelectionCancelEvent(event.getPlayer()).callCoreEvent();
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        if (!event.getPlayer().getUniqueId().equals(user))
+            return;
+
+        ElvenideStructures.unregisterListeners(this);
+        SelectionVisualizer vis = SelectionVisualizer.getExisting(event.getPlayer());
+        if (vis != null)
+            vis.remove();
+
+        Core.text.send(event.getPlayer(), "<red>Selection cancelled due to world change.");
+        new SelectionCancelEvent(event.getPlayer()).callCoreEvent();
     }
 
 }
