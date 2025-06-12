@@ -16,6 +16,8 @@ import com.elvenide.structures.switches.SwitchListener;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
+
 public final class ElvenideStructures extends CorePlugin {
 
     private static final ElevatorManager elevatorManager = new ElevatorManager();
@@ -28,6 +30,11 @@ public final class ElvenideStructures extends CorePlugin {
 
     @Override
     public void onEnabled() {
+        File dataFolder = getDataFolder();
+        if (!dataFolder.exists()) {
+            dataFolder.mkdirs();
+        }
+
         registerListeners(elevatorManager); // Register Bukkit listener for elevators
         elevatorManager.register(); // Register Core listener for elevators
         registerListeners(doorManager);
