@@ -4,7 +4,7 @@
 
 Easily build moving, functional structures such as elevators and sliding doors in Minecraft!
 
-Requires PaperMC, Java Edition only.
+Requires PaperMC, Java Edition only. [Click here to see the demo/tutorial video](https://youtu.be/m-TIfgImEz8?si=5vLVYXkxCiMPUMOo).
 
 <img src="images/elevator.gif" width="500" />\
 <img src="images/door.gif" width="500" />
