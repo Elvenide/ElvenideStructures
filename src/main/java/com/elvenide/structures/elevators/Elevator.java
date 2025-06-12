@@ -410,9 +410,12 @@ public class Elevator implements Structure {
                 // Handle player passengers
                 double blocksPerTick = elevatorBlock.getBlocksPerTick(direction);
                 getLastKnownPassengers().forEach(e -> {
-                    if (e instanceof Player) {
-                        e.setFallDistance(0);
-                        e.setVelocity(new Vector(0, blocksPerTick, 0));
+                    if (e instanceof Player p) {
+                        p.setFallDistance(0);
+                        p.setVelocity(new Vector(0, blocksPerTick, 0));
+
+                        // Re-enable flying every tick to prevent the player from manually disabling it
+                        p.setFlying(true);
                     }
                 });
             })

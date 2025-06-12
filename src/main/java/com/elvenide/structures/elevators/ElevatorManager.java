@@ -203,10 +203,29 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         if (door == null || !door.isOpen())
             return;
 
+        // Get the passengers on the elevator
+        Set<LivingEntity> passengers = event.elevator().getCurrentlyInside();
+
         // Freeze all passengers on the elevator
-        event.elevator().getCurrentlyInside().forEach(le -> {
-            event.elevator().freezePassengerMovement(le);
-        });
+        // Do this repeatedly until the door is closed, so they cannot unfreeze themselves
+        Core.tasks.builder()
+            .then(task -> {
+                if (!door.isOpen()) {
+                    task.cancel();
+                    return;
+                }
+
+                passengers.forEach(le -> {
+                    if (!event.elevator().getCurrentlyInside().contains(le))
+                        event.elevator().unfreezePassengerMovement(le);
+                });
+                passengers.clear();
+                passengers.addAll(event.elevator().getCurrentlyInside());
+                passengers.forEach(le -> {
+                    event.elevator().freezePassengerMovement(le);
+                });
+            })
+            .repeat(0L, 1L);
 
         // Close the door and any adjacent door
         Door adjacent = ElvenideStructures.doors().getAdjacent(door);
@@ -219,7 +238,8 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         Core.tasks.builder()
             .then(task -> {
                 // Unfreeze all passengers on the elevator, in case they moved
-                event.elevator().getCurrentlyInside().forEach(le -> {
+                passengers.addAll(event.elevator().getCurrentlyInside());
+                passengers.forEach(le -> {
                     event.elevator().unfreezePassengerMovement(le);
                 });
 
