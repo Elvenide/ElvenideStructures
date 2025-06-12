@@ -8,6 +8,7 @@ import com.elvenide.structures.doors.Door;
 import com.elvenide.structures.elevators.events.ElevatorEndEvent;
 import com.elvenide.structures.elevators.events.ElevatorStartEvent;
 import com.elvenide.structures.selection.Selection;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -15,6 +16,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -112,9 +114,14 @@ public class Elevator implements Structure {
             .orElse(null);
     }
 
-    /// Get all passengers currently on this elevator
-    public Set<LivingEntity> getPassengers() {
-        return getElevatorBlocks().stream().map(ElevatorBlock::getEntitiesOnBlock).flatMap(List::stream).collect(Collectors.toSet());
+    /// Get all passengers known to be riding this elevator when it was last moving
+    public Set<LivingEntity> getLastKnownPassengers() {
+        return getElevatorBlocks().stream().map(ElevatorBlock::getLastKnownPassengers).flatMap(HashSet::stream).collect(Collectors.toSet());
+    }
+
+    /// Get all passengers currently standing inside this elevator
+    public Set<LivingEntity> getCurrentlyInside() {
+        return getElevatorBlocks().stream().filter(ElevatorBlock::isBaseBlock).map(ElevatorBlock::getEntitiesOnBlock).flatMap(List::stream).collect(Collectors.toSet());
     }
 
     /// Get the number of blocks in this elevator's carriage
@@ -311,8 +318,7 @@ public class Elevator implements Structure {
 
     /// Check if a player is standing inside this elevator
     public boolean isInside(Player player) {
-        return getElevatorBlocks().stream().filter(ElevatorBlock::isBaseBlock)
-            .anyMatch(b -> b.getEntitiesOnBlock().contains(player));
+        return getCurrentlyInside().contains(player);
     }
 
     /// Check if this elevator is currently moving
@@ -400,6 +406,15 @@ public class Elevator implements Structure {
                 }
 
                 getElevatorBlocks().forEach(block -> block.move(direction));
+
+                // Handle player passengers
+                double blocksPerTick = elevatorBlock.getBlocksPerTick(direction);
+                getLastKnownPassengers().forEach(e -> {
+                    if (e instanceof Player) {
+                        e.setFallDistance(0);
+                        e.setVelocity(new Vector(0, blocksPerTick, 0));
+                    }
+                });
             })
             .repeat(0L, 1L);
     }
@@ -414,5 +429,26 @@ public class Elevator implements Structure {
         }
 
         Core.text.send(user, "<smooth_blue>ℹ You've called the elevator, it will arrive soon...");
+    }
+
+    public void freezePassengerMovement(LivingEntity e) {
+        if (e instanceof Player p) {
+            p.setAllowFlight(true);
+            p.setFlySpeed(0);
+            p.setWalkSpeed(0);
+            p.setFlying(true);
+        }
+        else e.setGravity(false);
+    }
+
+    public void unfreezePassengerMovement(LivingEntity e) {
+        if (e instanceof Player p) {
+            p.setFlying(false);
+            p.setFlySpeed(0.1f);
+            p.setWalkSpeed(0.2f);
+            if (p.getGameMode() != GameMode.CREATIVE)
+                p.setAllowFlight(false);
+        }
+        else e.setGravity(true);
     }
 }

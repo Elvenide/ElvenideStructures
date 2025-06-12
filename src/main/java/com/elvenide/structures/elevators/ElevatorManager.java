@@ -188,7 +188,7 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         Core.tasks.builder()
             .then(task -> {
                 event.elevator().moveDelayTrigger = null;
-                for (LivingEntity e : event.elevator().getPassengers())
+                for (LivingEntity e : event.elevator().getLastKnownPassengers())
                     usersOnCooldown.remove(e.getUniqueId());
             })
             .delay(8 * 20 + (door != null ? door.getMoveDuration() : 0L));
@@ -203,16 +203,9 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         if (door == null || !door.isOpen())
             return;
 
-        // Freeze all players on the elevator
-        event.elevator().getPassengers().forEach(le -> {
-            if (le instanceof Player p) {
-                p.setAllowFlight(true);
-                p.setFlySpeed(0);
-                p.setFlying(true);
-                p.setWalkSpeed(0);
-            }
-            else
-                le.setGravity(false);
+        // Freeze all passengers on the elevator
+        event.elevator().getCurrentlyInside().forEach(le -> {
+            event.elevator().freezePassengerMovement(le);
         });
 
         // Close the door and any adjacent door
@@ -225,6 +218,12 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         // (We can safely ignore the cooldown, as the cooldown must be over to reach this point)
         Core.tasks.builder()
             .then(task -> {
+                // Unfreeze all passengers on the elevator, in case they moved
+                event.elevator().getCurrentlyInside().forEach(le -> {
+                    event.elevator().unfreezePassengerMovement(le);
+                });
+
+                // Move the elevator, allow it to refreeze passengers as necessary
                 event.elevator().move(true);
             })
             .delay(door.getMoveDuration() + 5L);

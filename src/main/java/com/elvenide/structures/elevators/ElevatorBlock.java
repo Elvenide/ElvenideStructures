@@ -11,6 +11,7 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
 public class ElevatorBlock {
 
@@ -18,10 +19,11 @@ public class ElevatorBlock {
     private FallingBlock block;
     private final Location currentLocation;
     private final Elevator parent;
-    private final HashSet<LivingEntity> previousPassengers = new HashSet<>();
+    private final HashSet<LivingEntity> passengers = new HashSet<>();
     private final int baseDifference;
     private int targetY;
     public boolean atDestination = false;
+    private UUID ID = UUID.randomUUID();
 
     ElevatorBlock(Location startLocation, Elevator parent) {
         currentLocation = startLocation.clone();
@@ -43,19 +45,12 @@ public class ElevatorBlock {
     }
 
     public void spawn(int targetY) {
-        previousPassengers.clear();
+        passengers.clear();
 
         if (isBaseBlock())
             for (LivingEntity e : getEntitiesOnBlock()) {
-                if (e instanceof Player p) {
-                    p.setAllowFlight(true);
-                    p.setFlySpeed(0);
-                    p.setFlying(true);
-                    p.setWalkSpeed(0);
-                }
-                else e.setGravity(false);
-
-                previousPassengers.add(e);
+                parent.freezePassengerMovement(e);
+                passengers.add(e);
             }
 
         this.blockData = getCurrentLocation().getBlock().getBlockData();
@@ -74,8 +69,12 @@ public class ElevatorBlock {
         this.targetY = targetY + baseDifference;
     }
 
+    public double getBlocksPerTick(double direction) {
+        return parent.getSpeed() * direction / 20.0;
+    }
+
     public void move(double direction) {
-        double blocksPerTick = parent.getSpeed() * direction / 20.0;
+        double blocksPerTick = getBlocksPerTick(direction);
 
         double prevY = getCurrentLocation().getY();
         double y = prevY + blocksPerTick;
@@ -93,39 +92,34 @@ public class ElevatorBlock {
 
         // Move any entities on elevator
         if (isBaseBlock()) {
-            HashSet<LivingEntity> currentPassengers = new HashSet<>(getEntitiesOnBlock());
-
-            // Handle current passengers
-            for (LivingEntity e : currentPassengers) {
-                if (e instanceof Player p && !previousPassengers.contains(e)) {
-                    p.setAllowFlight(true);
-                    p.setFlySpeed(0);
-                    p.setWalkSpeed(0);
-                    p.setFlying(true);
+            // Get new passengers and disable their movement/gravity
+            HashSet<LivingEntity> newPassengers = new HashSet<>(getEntitiesOnBlock());
+            for (LivingEntity e : newPassengers) {
+                if (!passengers.contains(e)) {
+                    parent.freezePassengerMovement(e);
                 }
-                else if (e.hasGravity() && !previousPassengers.contains(e))
-                    e.setGravity(false);
+            }
 
-                if (atDestination && e instanceof Player p) {
-                    p.setFlying(false);
-                    p.setFlySpeed(0.1f);
-                    p.setWalkSpeed(0.2f);
-                    if (p.getGameMode() != GameMode.CREATIVE)
-                        p.setAllowFlight(false);
+            // Remove old passengers that are too far away
+            HashSet<LivingEntity> toRemove = new HashSet<>();
+            passengers.forEach(e -> {
+                if (e.getLocation().getWorld() != getCurrentLocation().getWorld()
+                    || e.getLocation().distanceSquared(getCurrentLocation()) > 3 * 3) {
+                    toRemove.add(e);
+                    parent.unfreezePassengerMovement(e);
                 }
-                else if (atDestination)
-                    e.setGravity(true);
+            });
+            passengers.removeAll(toRemove);
 
-                e.setFallDistance(0);
+            // Update passengers with new ones
+            passengers.addAll(newPassengers);
 
-                // Remove from previous passengers
-                previousPassengers.remove(e);
-
-                if (e instanceof Player) {
-                    e.setVelocity(new Vector(0, blocksPerTick, 0));
-                }
-                else {
+            // Handle current non-player passengers
+            for (LivingEntity e : passengers) {
+                if (!(e instanceof Player)) {
                     // Always teleport non-players
+
+                    e.setFallDistance(0);
                     Location entityLoc = e.getLocation();
                     double teleportY = y + 1;
 
@@ -138,34 +132,23 @@ public class ElevatorBlock {
                     e.teleport(entityLoc, TeleportFlag.EntityState.RETAIN_PASSENGERS, TeleportFlag.EntityState.RETAIN_VEHICLE);
                 }
             }
-
-            // Deal with previous passengers who are no longer on the elevator
-            for (LivingEntity e : previousPassengers) {
-                if (e instanceof Player p) {
-                    p.setFlying(false);
-                    p.setFlySpeed(0.1f);
-                    p.setWalkSpeed(0.2f);
-                    if (p.getGameMode() != GameMode.CREATIVE)
-                        p.setAllowFlight(false);
-                }
-                else if (!e.hasGravity())
-                    e.setGravity(true);
-            }
-
-            // Update previous passengers with the current passenger list
-            previousPassengers.clear();
-            previousPassengers.addAll(currentPassengers);
         }
     }
 
     public void end() {
-        if (isBaseBlock())
+        if (isBaseBlock()) {
             for (LivingEntity e : getEntitiesInsideBlock()) {
                 Location entityLoc = e.getLocation();
                 double teleportY = getCurrentLocation().getBlockY() + 1.01;
                 entityLoc.setY(teleportY);
                 e.teleport(entityLoc, TeleportFlag.EntityState.RETAIN_PASSENGERS, TeleportFlag.EntityState.RETAIN_VEHICLE);
             }
+
+            // Deal with passengers who are getting off the elevator
+            for (LivingEntity e : passengers) {
+                parent.unfreezePassengerMovement(e);
+            }
+        }
 
         getCurrentLocation().toBlockLocation().getBlock().setBlockData(blockData, false);
 
@@ -197,6 +180,13 @@ public class ElevatorBlock {
     public List<LivingEntity> getEntitiesInsideBlock() {
         Location horizontalCenter = getCurrentLocation().toCenterLocation();
         return new ArrayList<>(horizontalCenter.getNearbyLivingEntities(0.5, 0.5, 0.5));
+    }
+
+    /**
+     * Unlike getEntitiesOnBlock, this only returns entities that were last in the elevator when it was moving
+     */
+    public HashSet<LivingEntity> getLastKnownPassengers() {
+        return passengers;
     }
 
 }

@@ -96,7 +96,7 @@
         <dependency>
             <groupId>com.elvenide</groupId>
             <artifactId>ElvenideCore</artifactId>
-            <version>0.0.15-dev-9</version>
+            <version>0.0.15-dev-10</version>
         </dependency>
     </dependencies>
 </project>
