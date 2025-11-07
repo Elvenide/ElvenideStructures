@@ -393,33 +393,32 @@ public class Elevator implements Structure {
         for (ElevatorBlock block : getElevatorBlocks())
             block.spawn(targetY);
 
-        Core.tasks.builder()
-            .then(task -> {
-                ElevatorBlock elevatorBlock = getElevatorBlocks().iterator().next();
-                if (elevatorBlock.atDestination || !elevatorBlock.isValid()) {
-                    getElevatorBlocks().forEach(ElevatorBlock::end);
-                    setCurrentY(elevatorBlock.getCurrentY());
-                    isMoving = false;
-                    task.cancel();
-                    new ElevatorEndEvent(this).callCoreEvent();
-                    return;
+        Core.tasks.create(task -> {
+            ElevatorBlock elevatorBlock = getElevatorBlocks().iterator().next();
+            if (elevatorBlock.atDestination || !elevatorBlock.isValid()) {
+                getElevatorBlocks().forEach(ElevatorBlock::end);
+                setCurrentY(elevatorBlock.getCurrentY());
+                isMoving = false;
+                task.cancel();
+                new ElevatorEndEvent(this).callCoreEvent();
+                return;
+            }
+
+            getElevatorBlocks().forEach(block -> block.move(direction));
+
+            // Handle player passengers
+            double blocksPerTick = elevatorBlock.getBlocksPerTick(direction);
+            getLastKnownPassengers().forEach(e -> {
+                if (e instanceof Player p) {
+                    p.setFallDistance(0);
+                    p.setVelocity(new Vector(0, blocksPerTick, 0));
+
+                    // Re-enable flying every tick to prevent the player from manually disabling it
+                    p.setFlying(true);
                 }
-
-                getElevatorBlocks().forEach(block -> block.move(direction));
-
-                // Handle player passengers
-                double blocksPerTick = elevatorBlock.getBlocksPerTick(direction);
-                getLastKnownPassengers().forEach(e -> {
-                    if (e instanceof Player p) {
-                        p.setFallDistance(0);
-                        p.setVelocity(new Vector(0, blocksPerTick, 0));
-
-                        // Re-enable flying every tick to prevent the player from manually disabling it
-                        p.setFlying(true);
-                    }
-                });
-            })
-            .repeat(0L, 1L);
+            });
+        })
+        .repeat(0L, 1L);
     }
 
     @Override

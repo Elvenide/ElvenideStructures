@@ -6,7 +6,7 @@
 
     <groupId>com.elvenide</groupId>
     <artifactId>ElvenideStructures</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
     <packaging>jar</packaging>
 
     <name>ElvenideStructures</name>
@@ -77,6 +77,10 @@
 
     <repositories>
         <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+        <repository>
             <id>papermc-repo</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
@@ -90,13 +94,19 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.21.4-R0.1-SNAPSHOT</version>
+            <version>1.21.10-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.elvenide</groupId>
             <artifactId>ElvenideCore</artifactId>
-            <version>0.0.15-dev-10</version>
+            <version>0.0.17</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.papermc.paper</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>

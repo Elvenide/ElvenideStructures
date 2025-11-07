@@ -4,7 +4,6 @@ import com.elvenide.core.Core;
 import com.elvenide.core.providers.command.SubCommand;
 import com.elvenide.core.providers.command.SubCommandBuilder;
 import com.elvenide.core.providers.command.SubCommandContext;
-import com.elvenide.core.providers.plugin.CorePlugin;
 import com.elvenide.structures.doors.DoorManager;
 import com.elvenide.structures.doors.commands.DoorDeleteCommand;
 import com.elvenide.structures.doors.commands.SlidingDoorCommand;
@@ -14,31 +13,34 @@ import com.elvenide.structures.elevators.commands.ElevatorDeleteCommand;
 import com.elvenide.structures.elevators.commands.ElevatorRunCommand;
 import com.elvenide.structures.switches.SwitchListener;
 import org.bukkit.World;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 
-public final class ElvenideStructures extends CorePlugin {
+public final class ElvenideStructures extends JavaPlugin {
 
     private static final ElevatorManager elevatorManager = new ElevatorManager();
     private static final DoorManager doorManager = new DoorManager();
 
     @Override
-    public void onLoaded() {
+    public void onLoad() {
         Core.text.packages.moreColors.install();
     }
 
     @Override
-    public void onEnabled() {
+    public void onEnable() {
+        Core.plugin.set(this);
+
         File dataFolder = getDataFolder();
         if (!dataFolder.exists()) {
             dataFolder.mkdirs();
         }
 
-        registerListeners(elevatorManager); // Register Bukkit listener for elevators
+        Core.plugin.registerListeners(elevatorManager); // Register Bukkit listener for elevators
         elevatorManager.register(); // Register Core listener for elevators
-        registerListeners(doorManager);
-        registerListeners(new SwitchListener());
+        Core.plugin.registerListeners(doorManager);
+        Core.plugin.registerListeners(new SwitchListener());
 
         Core.commands.setHeader("<gradient:aqua:dark_aqua>Elvenide Structures");
         Core.commands.create("elvenidestructures")

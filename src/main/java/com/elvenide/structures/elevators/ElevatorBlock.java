@@ -1,7 +1,5 @@
 package com.elvenide.structures.elevators;
 
-import io.papermc.paper.entity.TeleportFlag;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -11,7 +9,6 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.UUID;
 
 public class ElevatorBlock {
 
@@ -23,7 +20,6 @@ public class ElevatorBlock {
     private final int baseDifference;
     private int targetY;
     public boolean atDestination = false;
-    private UUID ID = UUID.randomUUID();
 
     ElevatorBlock(Location startLocation, Elevator parent) {
         currentLocation = startLocation.clone();
@@ -129,7 +125,10 @@ public class ElevatorBlock {
                         teleportY -= 0.15;
 
                     entityLoc.setY(teleportY);
-                    e.teleport(entityLoc, TeleportFlag.EntityState.RETAIN_PASSENGERS, TeleportFlag.EntityState.RETAIN_VEHICLE);
+                    if (e.getVehicle() != null)
+                        e.getVehicle().teleport(entityLoc);
+                    else
+                        e.teleport(entityLoc);
                 }
             }
         }
@@ -141,7 +140,10 @@ public class ElevatorBlock {
                 Location entityLoc = e.getLocation();
                 double teleportY = getCurrentLocation().getBlockY() + 1.01;
                 entityLoc.setY(teleportY);
-                e.teleport(entityLoc, TeleportFlag.EntityState.RETAIN_PASSENGERS, TeleportFlag.EntityState.RETAIN_VEHICLE);
+                if (e.getVehicle() != null)
+                    e.getVehicle().teleport(entityLoc);
+                else
+                    e.teleport(entityLoc);
             }
 
             // Deal with passengers who are getting off the elevator

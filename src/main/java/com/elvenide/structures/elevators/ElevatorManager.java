@@ -14,7 +14,6 @@ import com.elvenide.structures.elevators.events.ElevatorStartEvent;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -149,23 +148,21 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
                 elevator.moveDelayTrigger = event.getPlayer();
                 Core.text.send(event.getPlayer(), "<smooth_blue>ℹ Elevator will depart in %.1f seconds...", elevator.getMoveDelay());
 
-                Core.tasks.builder()
-                    .then(task -> {
-                        if (elevator.moveDelayTrigger != event.getPlayer())
-                            return;
+                Core.tasks.create(task -> {
+                    if (elevator.moveDelayTrigger != event.getPlayer())
+                        return;
 
-                        if (elevator.isInside(event.getPlayer()))
-                            try {
-                                usersOnCooldown.add(event.getPlayer().getUniqueId());
-                                elevator.move();
-                            } catch (IllegalStateException e) {
-                                Core.text.send(event.getPlayer(), e.getMessage());
-                                elevator.moveDelayTrigger = null;
-                            }
-                        else
+                    if (elevator.isInside(event.getPlayer()))
+                        try {
+                            usersOnCooldown.add(event.getPlayer().getUniqueId());
+                            elevator.move();
+                        } catch (IllegalStateException e) {
+                            Core.text.send(event.getPlayer(), e.getMessage());
                             elevator.moveDelayTrigger = null;
-                    })
-                    .delay((long) (elevator.getMoveDelay() * 20D));
+                        }
+                    else
+                        elevator.moveDelayTrigger = null;
+                }).delay((long) (elevator.getMoveDelay() * 20D));
                 break;
             }
         }
@@ -185,16 +182,14 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         }
 
         // Wait at least 8 seconds to end move delay trigger and resume cooldown messages
-        Core.tasks.builder()
-            .then(task -> {
-                event.elevator().moveDelayTrigger = null;
-                for (LivingEntity e : event.elevator().getLastKnownPassengers())
-                    usersOnCooldown.remove(e.getUniqueId());
-            })
-            .delay(8 * 20 + (door != null ? door.getMoveDuration() : 0L));
+        Core.tasks.create(task -> {
+            event.elevator().moveDelayTrigger = null;
+            for (LivingEntity e : event.elevator().getLastKnownPassengers())
+                usersOnCooldown.remove(e.getUniqueId());
+        }).delay(8 * 20 + (door != null ? door.getMoveDuration() : 0L));
     }
 
-    @CoreEventHandler(priority = CoreEventPriority.LATEST, ignoreCancelled = true)
+    @CoreEventHandler(priority = CoreEventPriority.LATEST)
     public void onElevatorStart(ElevatorStartEvent event) {
         // Find a door near any of the base-level entry locations
         @Nullable Door door = event.elevator().getConnectedDoor();
@@ -208,24 +203,20 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
 
         // Freeze all passengers on the elevator
         // Do this repeatedly until the door is closed, so they cannot unfreeze themselves
-        Core.tasks.builder()
-            .then(task -> {
-                if (!door.isOpen()) {
-                    task.cancel();
-                    return;
-                }
+        Core.tasks.create(task -> {
+            if (!door.isOpen()) {
+                task.cancel();
+                return;
+            }
 
-                passengers.forEach(le -> {
-                    if (!event.elevator().getCurrentlyInside().contains(le))
-                        event.elevator().unfreezePassengerMovement(le);
-                });
-                passengers.clear();
-                passengers.addAll(event.elevator().getCurrentlyInside());
-                passengers.forEach(le -> {
-                    event.elevator().freezePassengerMovement(le);
-                });
-            })
-            .repeat(0L, 1L);
+            passengers.forEach(le -> {
+                if (!event.elevator().getCurrentlyInside().contains(le))
+                    event.elevator().unfreezePassengerMovement(le);
+            });
+            passengers.clear();
+            passengers.addAll(event.elevator().getCurrentlyInside());
+            passengers.forEach(le -> event.elevator().freezePassengerMovement(le));
+        }).repeat(0L, 1L);
 
         // Close the door and any adjacent door
         Door adjacent = ElvenideStructures.doors().getAdjacent(door);
@@ -235,18 +226,14 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
 
         // Wait until door closed, then run elevator again
         // (We can safely ignore the cooldown, as the cooldown must be over to reach this point)
-        Core.tasks.builder()
-            .then(task -> {
-                // Unfreeze all passengers on the elevator, in case they moved
-                passengers.addAll(event.elevator().getCurrentlyInside());
-                passengers.forEach(le -> {
-                    event.elevator().unfreezePassengerMovement(le);
-                });
+        Core.tasks.create(task -> {
+            // Unfreeze all passengers on the elevator, in case they moved
+            passengers.addAll(event.elevator().getCurrentlyInside());
+            passengers.forEach(le -> event.elevator().unfreezePassengerMovement(le));
 
-                // Move the elevator, allow it to refreeze passengers as necessary
-                event.elevator().move(true);
-            })
-            .delay(door.getMoveDuration() + 5L);
+            // Move the elevator, allow it to refreeze passengers as necessary
+            event.elevator().move(true);
+        }).delay(door.getMoveDuration() + 5L);
 
         // Cancel event
         event.setCancelled(true);

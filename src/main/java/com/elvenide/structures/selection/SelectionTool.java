@@ -34,7 +34,7 @@ public abstract class SelectionTool implements Listener {
     public SelectionTool(Player user) {
         this.user = user.getUniqueId();
         this.uuid = UUID.randomUUID();
-        ItemBuilder builder = create(Core.items.builder(Material.NETHERITE_AXE)
+        ItemBuilder builder = create(Core.items.create(Material.NETHERITE_AXE)
             .name("<smooth_purple>Elvenide's Selection Tool")
             .data(Keys.SELECTION_TOOL, PersistentDataType.STRING, uuid.toString())
             .lore("<yellow>Left-click <gray>to select corner #1")
@@ -42,7 +42,7 @@ public abstract class SelectionTool implements Listener {
         builder.lore("<yellow>Press F <gray>to complete selection");
         this.item = builder.build();
 
-        ElvenideStructures.registerListeners(this);
+        Core.plugin.registerListeners(this);
     }
 
     protected abstract ItemBuilder create(ItemBuilder builder);
@@ -155,7 +155,7 @@ public abstract class SelectionTool implements Listener {
 
         new SelectionEvent(selection, player).callCoreEvent();
         Objects.requireNonNull(SelectionVisualizer.getExisting(player)).remove();
-        ElvenideStructures.unregisterListeners(this);
+        Core.plugin.unregisterListeners(this);
     }
 
     @EventHandler
@@ -230,7 +230,7 @@ public abstract class SelectionTool implements Listener {
             return;
 
         event.getItemDrop().setItemStack(ItemStack.empty());
-        ElvenideStructures.unregisterListeners(this);
+        Core.plugin.unregisterListeners(this);
         SelectionVisualizer vis = SelectionVisualizer.getExisting(event.getPlayer());
         if (vis != null)
             vis.remove();
@@ -244,7 +244,7 @@ public abstract class SelectionTool implements Listener {
         if (!event.getPlayer().getUniqueId().equals(user))
             return;
 
-        ElvenideStructures.unregisterListeners(this);
+        Core.plugin.unregisterListeners(this);
         SelectionVisualizer vis = SelectionVisualizer.getExisting(event.getPlayer());
         if (vis != null)
             vis.remove();
@@ -256,7 +256,7 @@ public abstract class SelectionTool implements Listener {
         if (!event.getPlayer().getUniqueId().equals(user))
             return;
 
-        ElvenideStructures.unregisterListeners(this);
+        Core.plugin.unregisterListeners(this);
         SelectionVisualizer vis = SelectionVisualizer.getExisting(event.getPlayer());
         if (vis != null)
             vis.remove();

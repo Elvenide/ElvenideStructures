@@ -41,8 +41,7 @@ public class SelectionVisualizer {
         Iterator<Location> iterator = selection.iterator();
 
         // Create visualization outline over time (50 blocks covered per tick)
-        Core.tasks.builder()
-            .then(task -> {
+        Core.tasks.create(task -> {
                 for (int i = 0; i < 50; i++) {
                     if (!iterator.hasNext()) {
                         task.cancel();

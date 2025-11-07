@@ -93,35 +93,31 @@ public interface Door extends Structure {
 
         // A few tick delay is necessary due to setVisibleByDefault acting like spawning an entity on client,
         // and interpolation can only be set a few ticks after spawning
-        Core.tasks.builder()
-            .then(t -> {
-                // Reset interpolation
-                for (DoorBlock block : getBlocks()) {
-                    block.display().setInterpolationDelay(0);
-                    block.display().setInterpolationDuration(0);
-                    block.display().setTransformation(block.display().getTransformation());
+        Core.tasks.create(t -> {
+            // Reset interpolation
+            for (DoorBlock block : getBlocks()) {
+                block.display().setInterpolationDelay(0);
+                block.display().setInterpolationDuration(0);
+                block.display().setTransformation(block.display().getTransformation());
+            }
+
+            // Move door
+            moveToPercent(percent);
+            Core.tasks.create(task -> {
+                setMoving(false);
+
+                if (percent >= 1)
+                    setOpen(true);
+
+                if (percent <= 0) {
+                    setOpen(false);
+                    for (DoorBlock block : getBlocks()) {
+                        block.initialLocation().getBlock().setBlockData(block.display().getBlock(), false);
+                        block.display().setVisibleByDefault(false);
+                    }
                 }
-
-                // Move door
-                moveToPercent(percent);
-                Core.tasks.builder()
-                    .then(task -> {
-                        setMoving(false);
-
-                        if (percent >= 1)
-                            setOpen(true);
-
-                        if (percent <= 0) {
-                            setOpen(false);
-                            for (DoorBlock block : getBlocks()) {
-                                block.initialLocation().getBlock().setBlockData(block.display().getBlock(), false);
-                                block.display().setVisibleByDefault(false);
-                            }
-                        }
-                    })
-                    .delay(getMoveDuration());
-            })
-            .delay(2L);
+            }).delay(getMoveDuration());
+        }).delay(2L);
     }
 
     /// Fully opens the door over the move duration
