@@ -146,6 +146,9 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
                     continue;
                 }
 
+                if (elevator.getMoveDelay() <= 0.0)
+                    continue;
+
                 elevator.moveDelayTrigger = event.getPlayer();
                 Core.text.send(event.getPlayer(), "<smooth_blue>ℹ Elevator will depart in %.1f seconds...", elevator.getMoveDelay());
 
