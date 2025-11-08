@@ -80,7 +80,7 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         return getAllMap(world).get(name);
     }
 
-    public @NotNull Elevator create(String name, double speed, World world) {
+    public @NotNull Elevator create(String name, double speed, double moveDelay, World world) {
         Config config = getStructures(world);
         ConfigSection elevators = config.getSection("elevators");
         if (elevators == null)
@@ -88,6 +88,7 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
 
         ConfigSection elevator = elevators.createSection(name);
         elevator.set("speed", speed);
+        elevator.set("walk-in-delay-secs", moveDelay);
         config.save();
 
         Elevator e = new Elevator(elevator);

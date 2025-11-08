@@ -1,5 +1,6 @@
 package com.elvenide.structures.elevators.commands;
 
+import com.elvenide.core.providers.command.SubArgumentBuilder;
 import com.elvenide.core.providers.command.SubCommand;
 import com.elvenide.core.providers.command.SubCommandBuilder;
 import com.elvenide.core.providers.command.SubCommandContext;
@@ -29,13 +30,15 @@ public class ElevatorCreateCommand implements SubCommand {
             .setPlayerOnly()
             .setPermission("elvenidestructures.commands.elevator.create")
             .addWord("name")
-            .addDouble("speed", 0.5, 10.0);
+            .addDouble("speed", 0.5, 10.0)
+            .addDouble("walk_in_delay_secs", 0, 10.0, SubArgumentBuilder::setOptional);
     }
 
     @Override
     public void executes(@NotNull SubCommandContext context) {
         String name = context.args.getString("name");
         double speed = context.args.getDouble("speed");
+        double moveDelay = context.args.getDouble("walk_in_delay_secs", 5);
 
         context.args
             .ifTrue(ElvenideStructures.elevators().getNames(context.player().getWorld()).contains(name))
@@ -55,7 +58,7 @@ public class ElevatorCreateCommand implements SubCommand {
             @CoreEventHandler
             public void onSelection(SelectionEvent event) {
                 context.player().getInventory().removeItem(event.selector().getInventory().getItemInMainHand());
-                Elevator e = ElvenideStructures.elevators().create(name, speed, context.player().getWorld());
+                Elevator e = ElvenideStructures.elevators().create(name, speed, moveDelay, context.player().getWorld());
 
                 try {
                     e.setCarriageBlocks(event.selection());

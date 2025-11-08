@@ -230,12 +230,12 @@ public class Elevator implements Structure {
 
     /// Get the speed at which blocks move in this elevator
     public double getSpeed() {
-        return config.getDouble("speed");
+        return config.getDouble("speed", 1);
     }
 
     /// Get the delay (in secs) that a player must stand in the elevator before it starts moving
     public double getMoveDelay() {
-        return 5;
+        return config.getDouble("walk-in-delay-secs", 5);
     }
 
     /// Get the cooldown (in secs) before anyone can re-run this elevator
