@@ -3,6 +3,7 @@ package com.elvenide.structures.selection;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -11,6 +12,8 @@ import java.util.List;
 public class Selection implements Iterable<Location> {
     private final World world;
     private final List<Location> positions = new ArrayList<>();
+    private @Nullable Location tertiaryPosition = null;
+    private int minY = 10000;
 
     public Selection(Location firstPos, Location secondPos) {
         this.world = firstPos.getWorld();
@@ -21,11 +24,25 @@ public class Selection implements Iterable<Location> {
             for (int y = Math.min(firstPos.getBlockY(), secondPos.getBlockY()); y <= Math.max(firstPos.getBlockY(), secondPos.getBlockY()); y++) {
                 for (int z = Math.min(firstPos.getBlockZ(), secondPos.getBlockZ()); z <= Math.max(firstPos.getBlockZ(), secondPos.getBlockZ()); z++) {
                     Location loc = new Location(firstPos.getWorld(), x, y, z);
-                    if (!loc.getBlock().getType().isAir())
+                    if (!loc.getBlock().getType().isAir()) {
                         positions.add(loc);
+                        minY = Math.min(minY, y);
+                    }
                 }
             }
         }
+    }
+
+    public void setTertiaryPosition(@Nullable Location loc) {
+        tertiaryPosition = loc;
+    }
+
+    public @Nullable Location getTertiaryPosition() {
+        return tertiaryPosition;
+    }
+
+    public int getMinimumY() {
+        return minY;
     }
 
     @Override

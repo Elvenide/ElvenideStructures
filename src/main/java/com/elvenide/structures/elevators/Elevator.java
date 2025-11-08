@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 public class Elevator implements Structure {
 
     private final ConfigSection config;
+    private final ArrayList<Location> carriageLocations = new ArrayList<>();
     private final HashSet<ElevatorBlock> elevatorBlocks = new HashSet<>();
     private boolean isMoving = false;
     private long cooldown = 0;
@@ -35,79 +36,40 @@ public class Elevator implements Structure {
     }
 
     /// Get the block locations of this elevator's carriage
-    public List<Location> getCarriageBlocks() {
-        ArrayList<Location> blocks = new ArrayList<>();
+    public List<Location> getCarriageBlockLocations() {
+        if (!carriageLocations.isEmpty())
+            return carriageLocations;
 
         if (!config.contains("locations"))
-            return blocks;
+            return carriageLocations;
 
         for (String key : config.getSection("locations").getKeys()) {
-            blocks.add(config.getSection("locations").getLocation(key));
+            carriageLocations.add(config.getSection("locations").getLocation(key));
         }
-        return blocks;
+        return carriageLocations;
     }
 
-    /// Gets the block locations that are on the base-level
-    private HashSet<Location> getBaseBlocks() {
-        HashSet<Location> baseBlocks = new HashSet<>();
+    /// Gets the carriage block locations that can be stood on by humanoid entities
+    public HashSet<Location> getFloorBlockLocations() {
+        HashSet<Location> blocks = new HashSet<>();
 
-        // Get all base-level blocks
-        for (Location loc : getCarriageBlocks()) {
-            if (loc.getBlockY() == getBaseY())
-                baseBlocks.add(loc);
-        }
-
-        return baseBlocks;
-    }
-
-    /// Gets the block locations that are adjacent to the entrance(s) of this elevator on the base-level
-    public HashSet<Location> getEntryAdjacentBlocks() {
-        HashSet<Location> groundBaseBlocks = new HashSet<>();
-        HashSet<Location> allBlocks = new HashSet<>(getCarriageBlocks());
-        HashSet<Location> borderBlocks = new HashSet<>();
-
-        // Get all base-level blocks that can be stood on
-        for (Location loc : getBaseBlocks()) {
-            if (isWalkable(loc.getBlock().getRelative(BlockFace.UP))
+        for (Location loc : getCarriageBlockLocations()) {
+            if (isSolid(loc.getBlock()) && isWalkable(loc.getBlock().getRelative(BlockFace.UP))
                 && isWalkable(loc.getBlock().getRelative(BlockFace.UP, 2)))
-                groundBaseBlocks.add(loc);
+                blocks.add(loc);
         }
 
-        // Get blocks that border entry base-level blocks
-        for (Location loc : groundBaseBlocks) {
-            boolean isNorthBorder = !allBlocks.contains(loc.getBlock().getRelative(BlockFace.NORTH).getLocation());
-            boolean isSouthBorder = !allBlocks.contains(loc.getBlock().getRelative(BlockFace.SOUTH).getLocation());
-            boolean isEastBorder = !allBlocks.contains(loc.getBlock().getRelative(BlockFace.EAST).getLocation());
-            boolean isWestBorder = !allBlocks.contains(loc.getBlock().getRelative(BlockFace.WEST).getLocation());
-
-            if (isNorthBorder)
-                borderBlocks.add(loc.getBlock().getRelative(BlockFace.NORTH).getLocation());
-            if (isSouthBorder)
-                borderBlocks.add(loc.getBlock().getRelative(BlockFace.SOUTH).getLocation());
-            if (isEastBorder)
-                borderBlocks.add(loc.getBlock().getRelative(BlockFace.EAST).getLocation());
-            if (isWestBorder)
-                borderBlocks.add(loc.getBlock().getRelative(BlockFace.WEST).getLocation());
-        };
-
-        return borderBlocks;
-    }
-
-    /// Get the block locations that are adjacent to the entrance(s) of this elevator on the current level
-    public HashSet<Location> getCurrentEntryAdjacentBlocks() {
-        return new HashSet<>(
-            getEntryAdjacentBlocks().stream()
-                .map(loc -> {
-                    Location current = loc.clone();
-                    current.setY(getCurrentY());
-                    return current;
-                }).toList()
-        );
+        return blocks;
     }
 
     /// Get a door that is connected to this elevator, if any
     public @Nullable Door getConnectedDoor() {
-        return getCurrentEntryAdjacentBlocks().stream()
+        return getFloorBlockLocations().stream()
+            .map(loc -> {
+                Location newLoc = loc.clone();
+                newLoc.setY(getCurrentY());
+                return newLoc;
+            })
             .map(loc -> ElvenideStructures.doors().getNearby(loc))
             .filter(Objects::nonNull)
             .findFirst()
@@ -121,7 +83,7 @@ public class Elevator implements Structure {
 
     /// Get all passengers currently standing inside this elevator
     public Set<LivingEntity> getCurrentlyInside() {
-        return getElevatorBlocks().stream().filter(ElevatorBlock::isBaseBlock).map(ElevatorBlock::getEntitiesOnBlock).flatMap(List::stream).collect(Collectors.toSet());
+        return getElevatorBlocks().stream().filter(ElevatorBlock::isFloorBlock).map(ElevatorBlock::getEntitiesOnBlock).flatMap(List::stream).collect(Collectors.toSet());
     }
 
     /// Get the number of blocks in this elevator's carriage
@@ -175,57 +137,12 @@ public class Elevator implements Structure {
             || ElvenideStructures.doors().isDoorBlock(block.getLocation());
     }
 
-    /// Find a 2-block passable opening in the given direction
-    private @Nullable Location findOpeningInDirection(Location loc, BlockFace direction) {
-        HashSet<Location> baseBlocks = getBaseBlocks();
-        HashSet<Location> allBlocks = new HashSet<>(getCarriageBlocks());
-
-        // Calculate the maximum distance in this direction that the elevator can travel
-        int maxY;
-        outer:
-        for (maxY = 1; maxY <= 50; maxY++) {
-            for (Location baseBlock : baseBlocks) {
-                Block projectedBaseBlock = baseBlock.getBlock().getRelative(direction, maxY);
-                if (!projectedBaseBlock.getType().isAir() && !allBlocks.contains(projectedBaseBlock.getLocation())) {
-                    maxY--;
-                    break outer;
-                }
-            }
-        }
-
-        // Find the closest opening in this direction, if any can be found where the elevator can travel
-        for (int i = 1; i <= maxY; i++) {
-            Block above = loc.getBlock().getRelative(direction, i);
-            if (isSolid(above) && isWalkable(above.getRelative(BlockFace.UP))
-                && isWalkable(above.getRelative(BlockFace.UP, 2)))
-                return above.getLocation();
-        }
-
-        return null;
-    }
-
     /// Get the destination floor Y level of this elevator (or the base floor if already at destination)
-    public int getDestinationY() throws IllegalStateException {
+    public int getDestinationY() {
         if (getCurrentY() != getBaseY())
             return getBaseY();
 
-        HashSet<Location> entryAdjacents = getEntryAdjacentBlocks();
-
-        for (Location loc : entryAdjacents) {
-            Location openingAbove = findOpeningInDirection(loc, BlockFace.UP);
-            Location openingBelow = findOpeningInDirection(loc, BlockFace.DOWN);
-
-            if (openingAbove != null && openingBelow == null)
-                return openingAbove.getBlockY();
-
-            if (openingBelow != null && openingAbove == null)
-                return openingBelow.getBlockY();
-
-            if (openingAbove != null)
-                return Math.min(openingAbove.getBlockY(), openingBelow.getBlockY());
-        }
-
-        throw new IllegalStateException("No valid destination Y level found.");
+        return config.getInt("dest-level");
     }
 
     /// Get the speed at which blocks move in this elevator
@@ -240,16 +157,10 @@ public class Elevator implements Structure {
 
     /// Get the cooldown (in secs) before anyone can re-run this elevator
     public double getReuseCooldown() {
-        int destinationY;
-        try {
-            destinationY = getDestinationY();
-        } catch (IllegalStateException e) {
-            // Raw 1s cooldown if no destination
-            return 1;
-        }
+        int destinationY = getDestinationY();
 
         // Base cooldown
-        double base = ElvenideStructures.elevators().getConfiguredCooldownSecs(getCarriageBlocks().getFirst().getWorld());
+        double base = ElvenideStructures.elevators().getConfiguredCooldownSecs(getCarriageBlockLocations().getFirst().getWorld());
 
         // Base cooldown + elevator travel time for cooldown
         return base + Math.abs(getCurrentY() - destinationY)/getSpeed();
@@ -268,26 +179,18 @@ public class Elevator implements Structure {
     }
 
     /// Sets the blocks of this elevator's carriage
-    public void setCarriageBlocks(Selection carriage) throws IllegalStateException {
-        int baseY = 100000;
+    public void setCarriageBlocks(Selection carriage) {
         if (!config.contains("locations"))
             config.createSection("locations");
         ConfigSection locations = config.getSection("locations");
         assert locations != null;
 
-        for (Location loc : carriage) {
-            if (isSolid(loc.getBlock()) && isWalkable(loc.getBlock().getRelative(BlockFace.UP))
-                && isWalkable(loc.getBlock().getRelative(BlockFace.UP, 2))) {
-                baseY = Math.min(baseY, loc.getBlockY());
-            }
-
+        int minY = carriage.getMinimumY();
+        for (Location loc : carriage)
             locations.set(loc.getBlockX() + "_" + loc.getBlockY() + "_" + loc.getBlockZ(), loc);
-        }
 
-        if (baseY == 100000)
-            throw new IllegalStateException("No valid base Y level found in selection.");
-
-        config.set("base-level", baseY);
+        config.set("base-level", minY);
+        config.set("dest-level", carriage.getTertiaryPosition());
         config.getRoot().save();
     }
 
@@ -295,19 +198,14 @@ public class Elevator implements Structure {
     @Override
     public boolean isNearby(Location loc) {
         int currentY = getCurrentY();
-        int destinationY;
-        try {
-            destinationY = getDestinationY();
-        } catch (IllegalStateException e) {
-            return false;
-        }
+        int destinationY = getDestinationY();
 
         double range = ElvenideStructures.elevators().getConfiguredConnectionRange(loc.getWorld());
         if (Math.abs(currentY - loc.getBlockY()) > range && Math.abs(destinationY - loc.getBlockY()) > range)
             return false;
 
-        for (Location baseBlock : getBaseBlocks()) {
-            Location adjustedBaseBlock = baseBlock.clone();
+        for (Location floorBlock : getFloorBlockLocations()) {
+            Location adjustedBaseBlock = floorBlock.clone();
             adjustedBaseBlock.setY(loc.getY());
             if (loc.distance(adjustedBaseBlock) <= range + 0.5)
                 return true;
@@ -334,21 +232,17 @@ public class Elevator implements Structure {
 
     /// Gets the ElevatorBlock instances for this elevator; if none exist, creates them
     public HashSet<ElevatorBlock> getElevatorBlocks() {
-        HashSet<Location> carriageLocations = new HashSet<>(getCarriageBlocks());
-        if (elevatorBlocks.isEmpty())
-            elevatorBlocks.addAll(carriageLocations.stream().map(b -> new ElevatorBlock(b, this)).toList());
+        if (!elevatorBlocks.isEmpty())
+            return elevatorBlocks;
 
+        HashSet<Location> carriageLocations = new HashSet<>(getCarriageBlockLocations());
+        elevatorBlocks.addAll(carriageLocations.stream().map(b -> new ElevatorBlock(b, this, getFloorBlockLocations().contains(b))).toList());
         return elevatorBlocks;
     }
 
     /// Moves the elevator carriage to the floor nearest to the given location (if possible, or errors otherwise)
     public void moveToNearestFloor(Location nearbyLoc) throws IllegalStateException {
-        int destinationY;
-        try {
-            destinationY = getDestinationY();
-        } catch (IllegalStateException e) {
-            throw new IllegalStateException("<red>✖ Failed to move elevator to nearest floor: Could not find a valid destination floor that would connect to the elevator's entrances.");
-        }
+        int destinationY = getDestinationY();
 
         int currentDist = Math.abs(nearbyLoc.getBlockY() - getCurrentY());
         int otherDist = Math.abs(nearbyLoc.getBlockY() - destinationY);
@@ -373,13 +267,7 @@ public class Elevator implements Structure {
         if (!ignoreCooldown && isOnCooldown())
             throw new IllegalStateException(Core.text.format("<red>✖ You must wait %.1f seconds before re-running this elevator.", getRemainingCooldown()));
 
-        int targetY;
-
-        try {
-            targetY = getDestinationY();
-        } catch (IllegalStateException e) {
-            throw new IllegalStateException("<red>✖ Failed to move elevator: Could not find a valid destination floor that would connect to the elevator's entrances.");
-        }
+        int targetY = getDestinationY();
 
         if (new ElevatorStartEvent(this).callCoreEvent().isCancelled())
             return;

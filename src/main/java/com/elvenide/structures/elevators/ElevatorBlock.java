@@ -19,13 +19,15 @@ public class ElevatorBlock {
     private final HashSet<LivingEntity> passengers = new HashSet<>();
     private final int baseDifference;
     private int targetY;
+    private final boolean isFloorBlock;
     public boolean atDestination = false;
 
-    ElevatorBlock(Location startLocation, Elevator parent) {
+    ElevatorBlock(Location startLocation, Elevator parent, boolean isFloorBlock) {
         currentLocation = startLocation.clone();
         this.parent = parent;
         this.baseDifference = startLocation.getBlockY() - parent.getBaseY();
         currentLocation.setY(parent.getCurrentY() + baseDifference);
+        this.isFloorBlock = isFloorBlock;
     }
 
     private Location getCurrentLocation() {
@@ -43,7 +45,7 @@ public class ElevatorBlock {
     public void spawn(int targetY) {
         passengers.clear();
 
-        if (isBaseBlock())
+        if (isFloorBlock())
             for (LivingEntity e : getEntitiesOnBlock()) {
                 parent.freezePassengerMovement(e);
                 passengers.add(e);
@@ -87,7 +89,7 @@ public class ElevatorBlock {
         blockEntity().setVelocity(new Vector(0, blocksPerTick, 0));
 
         // Move any entities on elevator
-        if (isBaseBlock()) {
+        if (isFloorBlock()) {
             // Get new passengers and disable their movement/gravity
             HashSet<LivingEntity> newPassengers = new HashSet<>(getEntitiesOnBlock());
             for (LivingEntity e : newPassengers) {
@@ -135,7 +137,7 @@ public class ElevatorBlock {
     }
 
     public void end() {
-        if (isBaseBlock()) {
+        if (isFloorBlock()) {
             for (LivingEntity e : getEntitiesInsideBlock()) {
                 Location entityLoc = e.getLocation();
                 double teleportY = getCurrentLocation().getBlockY() + 1.01;
@@ -169,8 +171,8 @@ public class ElevatorBlock {
         return blockEntity() != null && blockEntity().isValid();
     }
 
-    public boolean isBaseBlock() {
-        return baseDifference == 0;
+    public boolean isFloorBlock() {
+        return isFloorBlock;
     }
 
     public List<LivingEntity> getEntitiesOnBlock() {

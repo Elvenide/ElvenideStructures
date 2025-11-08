@@ -42,36 +42,20 @@ public class SelectionVisualizer {
 
         // Create visualization outline over time (50 blocks covered per tick)
         Core.tasks.create(task -> {
-                for (int i = 0; i < 50; i++) {
-                    if (!iterator.hasNext()) {
-                        task.cancel();
-                        return;
-                    }
-
-                    Location location = iterator.next();
-                    Shulker shulker = location.getWorld().spawn(location, Shulker.class, s -> {
-                        s.setGlowing(true);
-                        s.setAI(false);
-                        s.setInvulnerable(true);
-                        s.setInvisible(true);
-                        s.setNoPhysics(true);
-                        s.setSilent(true);
-
-                        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
-                        Team team = board.getTeam("elvenide_structures_selection");
-                        if (team == null)
-                            team = board.registerNewTeam("elvenide_structures_selection");
-
-                        String colorName = ElvenideStructures.elevators().getConfiguration(location.getWorld()).getString("selection-visualizer.color", "GREEN");
-                        team.color(NamedTextColor.NAMES.valueOr(colorName.toLowerCase(), NamedTextColor.GREEN));
-                        team.addEntity(s);
-                    });
-                    shulkers.add(shulker);
-                    shulker.setVisibleByDefault(false);
-                    player.showEntity(ElvenideStructures.getPlugin(ElvenideStructures.class), shulker);
+            for (int i = 0; i < 50; i++) {
+                if (!iterator.hasNext()) {
+                    task.cancel();
+                    return;
                 }
-            })
-            .repeat(0L, 1L);
+
+                Location location = iterator.next();
+                visualize(location, NamedTextColor.GREEN);
+            }
+        }).repeat(0L, 1L);
+
+        // Create visualization of extra positions
+        if (selection.getTertiaryPosition() != null)
+            visualize(selection.getTertiaryPosition(), NamedTextColor.AQUA);
     }
 
     public void remove() {
@@ -79,6 +63,29 @@ public class SelectionVisualizer {
             shulker.remove();
         }
         shulkers.clear();
+    }
+
+    private void visualize(Location location, NamedTextColor color) {
+        Shulker shulker = location.getWorld().spawn(location, Shulker.class, s -> {
+            s.setGlowing(true);
+            s.setAI(false);
+            s.setInvulnerable(true);
+            s.setInvisible(true);
+            s.setNoPhysics(true);
+            s.setSilent(true);
+
+            Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+            Team team = board.getTeam("elvenide_structures_selection");
+            if (team == null)
+                team = board.registerNewTeam("elvenide_structures_selection");
+
+            String colorName = ElvenideStructures.elevators().getConfiguration(location.getWorld()).getString("selection-visualizer.color", "GREEN");
+            team.color(NamedTextColor.NAMES.valueOr(colorName.toLowerCase(), color));
+            team.addEntity(s);
+        });
+        shulkers.add(shulker);
+        shulker.setVisibleByDefault(false);
+        player.showEntity(ElvenideStructures.getPlugin(ElvenideStructures.class), shulker);
     }
 
     @Contract("!null, _ -> !null")

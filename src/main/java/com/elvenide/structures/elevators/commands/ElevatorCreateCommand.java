@@ -10,7 +10,7 @@ import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.elevators.Elevator;
 import com.elvenide.structures.selection.events.SelectionCancelEvent;
 import com.elvenide.structures.selection.events.SelectionEvent;
-import com.elvenide.structures.selection.tools.DefaultSelectionTool;
+import com.elvenide.structures.selection.tools.ElevatorSelectionTool;
 import org.jetbrains.annotations.NotNull;
 
 public class ElevatorCreateCommand implements SubCommand {
@@ -46,10 +46,12 @@ public class ElevatorCreateCommand implements SubCommand {
             .orIfTrue(creationListener != null)
             .thenEnd("Only one elevator can be edited at a time! Wait for {} to finish.", creatorName);
 
-        context.player().give(new DefaultSelectionTool(context.player()).getItem());
+        ElevatorSelectionTool tool = new ElevatorSelectionTool(context.player());
+        context.player().give(tool.getItem());
         context.reply("<green>Use the <smooth_purple>Selection Tool</smooth_purple> to select the elevator's carriage, which will move up and down.");
         context.reply("<yellow>Left-click <gray>to select corner #1.");
         context.reply("<yellow>Right-click <gray>to select opposite corner #2.");
+        context.reply("<hover:show_text:'<gray>Bottom of elevator will move to align to this block.'><yellow>Shift-right-click <gray>to select destination floor.</hover>");
         context.reply("<yellow>Press F <gray>to finalize selection.");
 
         creatorName = context.player().getName();
@@ -60,12 +62,8 @@ public class ElevatorCreateCommand implements SubCommand {
                 context.player().getInventory().removeItem(event.selector().getInventory().getItemInMainHand());
                 Elevator e = ElvenideStructures.elevators().create(name, speed, moveDelay, context.player().getWorld());
 
-                try {
-                    e.setCarriageBlocks(event.selection());
-                    context.reply("<green>Created elevator '{}' with {}-block carriage!", e.getName(), e.getCarriageSize());
-                } catch (IllegalStateException ex) {
-                    context.reply("<red>Failed to create elevator '{}': There is no space for players to stand in your elevator!", e.getName());
-                }
+                e.setCarriageBlocks(event.selection());
+                context.reply("<green>Created elevator '{}' with {}-block carriage!", e.getName(), e.getCarriageSize());
 
                 creationListener.unregister();
                 creatorName = "";

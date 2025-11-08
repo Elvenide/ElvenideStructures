@@ -58,7 +58,7 @@ public class SlidingDoorSelectionTool extends SelectionTool {
             case NORTH_WEST, EAST_NORTH_EAST, EAST_SOUTH_EAST -> slideDirection = BlockFace.EAST;
         }
 
-        Core.text.send(player, "<aqua>Door sliding direction set to <dark_aqua>{}.", slideDirection.name());
+        Core.text.send(player, "<aqua>Door sliding direction set to <dark_aqua>{}", slideDirection.name());
     }
 
     @PublicAPI
