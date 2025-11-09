@@ -47,7 +47,7 @@ public class ElevatorBlock {
 
         if (isFloorBlock())
             for (LivingEntity e : getEntitiesOnBlock()) {
-                parent.freezePassengerMovement(e);
+                ElevatorUtils.freezePassengerMovement(e);
                 passengers.add(e);
             }
 
@@ -94,7 +94,7 @@ public class ElevatorBlock {
             HashSet<LivingEntity> newPassengers = new HashSet<>(getEntitiesOnBlock());
             for (LivingEntity e : newPassengers) {
                 if (!passengers.contains(e)) {
-                    parent.freezePassengerMovement(e);
+                    ElevatorUtils.freezePassengerMovement(e);
                 }
             }
 
@@ -104,7 +104,7 @@ public class ElevatorBlock {
                 if (e.getLocation().getWorld() != getCurrentLocation().getWorld()
                     || e.getLocation().distanceSquared(getCurrentLocation()) > 3 * 3) {
                     toRemove.add(e);
-                    parent.unfreezePassengerMovement(e);
+                    ElevatorUtils.unfreezePassengerMovement(e);
                 }
             });
             passengers.removeAll(toRemove);
@@ -150,15 +150,14 @@ public class ElevatorBlock {
 
             // Deal with passengers who are getting off the elevator
             for (LivingEntity e : passengers) {
-                parent.unfreezePassengerMovement(e);
+                ElevatorUtils.unfreezePassengerMovement(e);
             }
         }
 
         getCurrentLocation().toBlockLocation().getBlock().setBlockData(blockData, false);
 
-        if (blockEntity() != null) {
+        if (blockEntity() != null)
             blockEntity().remove();
-        }
 
         atDestination = false;
     }

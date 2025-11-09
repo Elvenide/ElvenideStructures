@@ -8,11 +8,7 @@ import com.elvenide.structures.doors.Door;
 import com.elvenide.structures.elevators.events.ElevatorEndEvent;
 import com.elvenide.structures.elevators.events.ElevatorStartEvent;
 import com.elvenide.structures.selection.Selection;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Tag;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -35,6 +31,9 @@ public class Elevator implements Structure {
         this.config = config;
     }
 
+
+    /* <editor-fold defaultstate="collapsed" desc="Getters"> */
+
     /// Get the block locations of this elevator's carriage
     public List<Location> getCarriageBlockLocations() {
         if (!carriageLocations.isEmpty())
@@ -54,12 +53,22 @@ public class Elevator implements Structure {
         HashSet<Location> blocks = new HashSet<>();
 
         for (Location loc : getCarriageBlockLocations()) {
-            if (isSolid(loc.getBlock()) && isWalkable(loc.getBlock().getRelative(BlockFace.UP))
-                && isWalkable(loc.getBlock().getRelative(BlockFace.UP, 2)))
+            if (ElevatorUtils.isSolid(loc.getBlock()) && ElevatorUtils.isWalkable(loc.getBlock().getRelative(BlockFace.UP))
+                && ElevatorUtils.isWalkable(loc.getBlock().getRelative(BlockFace.UP, 2)))
                 blocks.add(loc);
         }
 
         return blocks;
+    }
+
+    /// Gets the ElevatorBlock instances for this elevator; if none exist, creates them
+    public HashSet<ElevatorBlock> getElevatorBlocks() {
+        if (!elevatorBlocks.isEmpty())
+            return elevatorBlocks;
+
+        HashSet<Location> carriageLocations = new HashSet<>(getCarriageBlockLocations());
+        elevatorBlocks.addAll(carriageLocations.stream().map(b -> new ElevatorBlock(b, this, getFloorBlockLocations().contains(b))).toList());
+        return elevatorBlocks;
     }
 
     /// Get a door that is connected to this elevator, if any
@@ -103,40 +112,6 @@ public class Elevator implements Structure {
         return config.getInt("current-level", getBaseY());
     }
 
-    /// Set the current floor Y level of this elevator
-    public void setCurrentY(int y) {
-        config.set("current-level", y);
-        config.getRoot().save();
-    }
-
-    /// If a block is not passable
-    private boolean isSolid(Block block) {
-        // Do not consider barriers to be solid
-        if (block.getType() == Material.BARRIER)
-            return false;
-
-        // Do not consider custom door blocks to be solid
-        if (ElvenideStructures.doors().isDoorBlock(block.getLocation()))
-            return false;
-
-        return !block.isPassable();
-    }
-
-    /// If a block is either passable or can be opened to pass through
-    private boolean isWalkable(Block block) {
-        // Do not allow walking in structure voids
-        if (block.getType() == Material.STRUCTURE_VOID)
-            return false;
-
-        // Support passables, and various door types
-        return block.isPassable()
-            || Tag.DOORS.isTagged(block.getType())
-            || Tag.FENCE_GATES.isTagged(block.getType())
-            || Tag.TRAPDOORS.isTagged(block.getType())
-            // Custom doors can be opened and walked through:
-            || ElvenideStructures.doors().isDoorBlock(block.getLocation());
-    }
-
     /// Get the destination floor Y level of this elevator (or the base floor if already at destination)
     public int getDestinationY() {
         if (getCurrentY() != getBaseY())
@@ -178,6 +153,17 @@ public class Elevator implements Structure {
         return config.getName();
     }
 
+    /* </editor-fold> */
+
+
+    /* <editor-fold defaultstate="collapsed" desc="Setters"> */
+
+    /// Set the current floor Y level of this elevator
+    public void setCurrentY(int y) {
+        config.set("current-level", y);
+        config.getRoot().save();
+    }
+
     /// Sets the blocks of this elevator's carriage
     public void setCarriageBlocks(Selection carriage) {
         if (!config.contains("locations"))
@@ -193,6 +179,11 @@ public class Elevator implements Structure {
         config.set("dest-level", carriage.getTertiaryPosition());
         config.getRoot().save();
     }
+
+    /* </editor-fold> */
+
+
+    /* <editor-fold defaultstate="collapsed" desc="Boolean Flags"> */
 
     /// Check if a location is within range of the floors of this elevator
     @Override
@@ -230,15 +221,10 @@ public class Elevator implements Structure {
         return now - cooldown < getReuseCooldown() * 1000;
     }
 
-    /// Gets the ElevatorBlock instances for this elevator; if none exist, creates them
-    public HashSet<ElevatorBlock> getElevatorBlocks() {
-        if (!elevatorBlocks.isEmpty())
-            return elevatorBlocks;
+    /* </editor-fold> */
 
-        HashSet<Location> carriageLocations = new HashSet<>(getCarriageBlockLocations());
-        elevatorBlocks.addAll(carriageLocations.stream().map(b -> new ElevatorBlock(b, this, getFloorBlockLocations().contains(b))).toList());
-        return elevatorBlocks;
-    }
+
+    /* <editor-fold defaultstate="collapsed" desc="Movement"> */
 
     /// Moves the elevator carriage to the floor nearest to the given location (if possible, or errors otherwise)
     public void moveToNearestFloor(Location nearbyLoc) throws IllegalStateException {
@@ -258,8 +244,13 @@ public class Elevator implements Structure {
         move(false);
     }
 
+    /// Moves the elevator carriage from one floor to another, ignoring cooldown
+    public void moveWithoutCooldown() throws IllegalStateException {
+        move(true);
+    }
+
     /// Moves the elevator carriage from one floor to another
-    public void move(boolean ignoreCooldown) throws IllegalStateException {
+    private void move(boolean ignoreCooldown) throws IllegalStateException {
         if (isMoving) {
             throw new IllegalStateException("<red>✖ The elevator is already moving.");
         }
@@ -309,6 +300,9 @@ public class Elevator implements Structure {
         .repeat(0L, 1L);
     }
 
+    /* </editor-fold> */
+
+
     @Override
     public void onNearbySwitchUsed(Player user, Location loc) {
         try {
@@ -321,24 +315,4 @@ public class Elevator implements Structure {
         Core.text.send(user, "<smooth_blue>ℹ You've called the elevator, it will arrive soon...");
     }
 
-    public void freezePassengerMovement(LivingEntity e) {
-        if (e instanceof Player p) {
-            p.setAllowFlight(true);
-            p.setFlySpeed(0);
-            p.setWalkSpeed(0);
-            p.setFlying(true);
-        }
-        else e.setGravity(false);
-    }
-
-    public void unfreezePassengerMovement(LivingEntity e) {
-        if (e instanceof Player p) {
-            p.setFlying(false);
-            p.setFlySpeed(0.1f);
-            p.setWalkSpeed(0.2f);
-            if (p.getGameMode() != GameMode.CREATIVE)
-                p.setAllowFlight(false);
-        }
-        else e.setGravity(true);
-    }
 }

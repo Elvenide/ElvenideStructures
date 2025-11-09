@@ -37,7 +37,7 @@ public class ElevatorRunCommand implements SubCommand {
         Elevator e = ElvenideStructures.elevators().get(name, context.player().getWorld());
         try {
             assert e != null;
-            e.move(true);
+            e.moveWithoutCooldown();
         } catch (IllegalStateException ex) {
             context.end(ex.getMessage());
         }

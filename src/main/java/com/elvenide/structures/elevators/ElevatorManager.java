@@ -215,11 +215,11 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
 
             passengers.forEach(le -> {
                 if (!event.elevator().getCurrentlyInside().contains(le))
-                    event.elevator().unfreezePassengerMovement(le);
+                    ElevatorUtils.unfreezePassengerMovement(le);
             });
             passengers.clear();
             passengers.addAll(event.elevator().getCurrentlyInside());
-            passengers.forEach(le -> event.elevator().freezePassengerMovement(le));
+            passengers.forEach(ElevatorUtils::freezePassengerMovement);
         }).repeat(0L, 1L);
 
         // Close the door and any adjacent door
@@ -233,10 +233,10 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         Core.tasks.create(task -> {
             // Unfreeze all passengers on the elevator, in case they moved
             passengers.addAll(event.elevator().getCurrentlyInside());
-            passengers.forEach(le -> event.elevator().unfreezePassengerMovement(le));
+            passengers.forEach(ElevatorUtils::unfreezePassengerMovement);
 
             // Move the elevator, allow it to refreeze passengers as necessary
-            event.elevator().move(true);
+            event.elevator().moveWithoutCooldown();
         }).delay(door.getMoveDuration() + 5L);
 
         // Cancel event
