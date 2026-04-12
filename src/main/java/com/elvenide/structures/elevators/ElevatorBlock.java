@@ -71,22 +71,25 @@ public class ElevatorBlock {
         return parent.getSpeed() * direction / 20.0;
     }
 
-    public void move(double direction) {
+    public double move(double direction) {
         double blocksPerTick = getBlocksPerTick(direction);
 
         double prevY = getCurrentLocation().getY();
         double y = prevY + blocksPerTick;
-        if ((prevY < targetY && y > targetY) || (prevY > targetY && y < targetY)) {
-            // Reset y
+        if (direction > 0 && y >= targetY) {
+            y = targetY;
+        } else if (direction < 0 && y <= targetY) {
             y = targetY;
         }
 
         // Check if at destination
         atDestination = y == targetY;
 
+        double actualMove = y - prevY;
+
         // Move elevator
         setCurrentY(y);
-        blockEntity().setVelocity(new Vector(0, blocksPerTick, 0));
+        blockEntity().setVelocity(new Vector(0, actualMove, 0));
 
         // Move any entities on elevator
         if (isFloorBlock()) {
@@ -134,13 +137,15 @@ public class ElevatorBlock {
                 }
             }
         }
+
+        return actualMove;
     }
 
     public void end() {
         if (isFloorBlock()) {
             for (LivingEntity e : getEntitiesInsideBlock()) {
                 Location entityLoc = e.getLocation();
-                double teleportY = getCurrentLocation().getBlockY() + 1.01;
+                double teleportY = targetY + 1.01;
                 entityLoc.setY(teleportY);
                 if (e.getVehicle() != null)
                     e.getVehicle().teleport(entityLoc);
@@ -154,16 +159,20 @@ public class ElevatorBlock {
             }
         }
 
-        getCurrentLocation().toBlockLocation().getBlock().setBlockData(blockData, false);
+        Location finalLoc = getCurrentLocation().toBlockLocation();
+        finalLoc.setY(targetY);
+        finalLoc.getBlock().setBlockData(blockData, false);
 
         if (blockEntity() != null)
             blockEntity().remove();
 
+        // Update current location to exact target
+        currentLocation.setY(targetY);
         atDestination = false;
     }
 
     public int getCurrentY() {
-        return getCurrentLocation().getBlockY() - baseDifference;
+        return (int) Math.round(getCurrentLocation().getY()) - baseDifference;
     }
 
     public boolean isValid() {

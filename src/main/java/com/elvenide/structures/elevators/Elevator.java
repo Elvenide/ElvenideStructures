@@ -283,14 +283,17 @@ public class Elevator implements Structure {
                 return;
             }
 
-            getElevatorBlocks().forEach(block -> block.move(direction));
+            double actualMove = elevatorBlock.getBlocksPerTick(direction);
+            for (ElevatorBlock block : getElevatorBlocks()) {
+                actualMove = block.move(direction);
+            }
 
             // Handle player passengers
-            double blocksPerTick = elevatorBlock.getBlocksPerTick(direction);
+            double finalActualMove = actualMove;
             getLastKnownPassengers().forEach(e -> {
                 if (e instanceof Player p) {
                     p.setFallDistance(0);
-                    p.setVelocity(new Vector(0, blocksPerTick, 0));
+                    p.setVelocity(new Vector(0, finalActualMove, 0));
 
                     // Re-enable flying every tick to prevent the player from manually disabling it
                     p.setFlying(true);
