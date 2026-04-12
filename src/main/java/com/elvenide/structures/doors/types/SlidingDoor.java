@@ -21,19 +21,34 @@ public class SlidingDoor implements Door {
 
     public SlidingDoor(ConfigSection config) {
         this.config = config;
-        this.blocks = getLocations().stream().map(l -> Door.createBlock(l, l.getBlock().getBlockData())).toList();
+        this.blocks = loadBlocks();
     }
 
-    private List<Location> getLocations() {
-        ArrayList<Location> blocks = new ArrayList<>();
+    private List<DoorBlock> loadBlocks() {
+        ArrayList<DoorBlock> loadedBlocks = new ArrayList<>();
 
         if (!config.contains("locations"))
-            return blocks;
+            return loadedBlocks;
 
-        for (String key : config.getSection("locations").getKeys()) {
-            blocks.add(config.getSection("locations").getLocation(key));
+        ConfigSection locations = config.getSection("locations");
+        for (String key : locations.getKeys()) {
+            Location loc;
+            org.bukkit.block.data.BlockData data;
+            ConfigSection locSection = locations.getSection(key);
+            if (locSection != null) {
+                loc = locSection.getLocation("loc");
+                data = org.bukkit.Bukkit.createBlockData(locSection.getString("data"));
+            } else {
+                loc = locations.getLocation(key);
+                data = loc.getBlock().getBlockData();
+                locSection = locations.createSection(key);
+                locSection.set("loc", loc);
+                locSection.set("data", data.getAsString());
+            }
+            loadedBlocks.add(Door.createBlock(loc, data));
         }
-        return blocks;
+        config.getRoot().save();
+        return loadedBlocks;
     }
 
     @Override
@@ -100,7 +115,10 @@ public class SlidingDoor implements Door {
 
         ConfigSection locations = section.createSection("locations");
         for (Location loc : selection) {
-            locations.set(loc.getBlockX() + "_" + loc.getBlockY() + "_" + loc.getBlockZ(), loc);
+            String key = loc.getBlockX() + "_" + loc.getBlockY() + "_" + loc.getBlockZ();
+            ConfigSection locSection = locations.createSection(key);
+            locSection.set("loc", loc);
+            locSection.set("data", loc.getBlock().getBlockData().getAsString());
         }
         section.getRoot().save();
 

@@ -142,6 +142,8 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
                     if (!usersOnCooldown.contains(event.getPlayer().getUniqueId())) {
                         usersOnCooldown.add(event.getPlayer().getUniqueId());
                         Core.text.send(event.getPlayer(), "<red>✖ That elevator is on cooldown for %.1f seconds.", elevator.getRemainingCooldown());
+                        Core.tasks.create(t -> usersOnCooldown.remove(event.getPlayer().getUniqueId()))
+                                .delay((long) (elevator.getRemainingCooldown() * 20L));
                     }
                     continue;
                 }
@@ -160,6 +162,8 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
                         try {
                             usersOnCooldown.add(event.getPlayer().getUniqueId());
                             elevator.move();
+                            Core.tasks.create(t -> usersOnCooldown.remove(event.getPlayer().getUniqueId()))
+                                    .delay((long) (elevator.getReuseCooldown() * 20L));
                         } catch (IllegalStateException e) {
                             Core.text.send(event.getPlayer(), e.getMessage());
                             elevator.moveDelayTrigger = null;
@@ -188,8 +192,6 @@ public class ElevatorManager implements Listener, CoreListener, StructureManager
         // Wait at least 8 seconds to end move delay trigger and resume cooldown messages
         Core.tasks.create(task -> {
             event.elevator().moveDelayTrigger = null;
-            for (LivingEntity e : event.elevator().getLastKnownPassengers())
-                usersOnCooldown.remove(e.getUniqueId());
         }).delay(8 * 20 + (door != null ? door.getMoveDuration() : 0L));
     }
 
