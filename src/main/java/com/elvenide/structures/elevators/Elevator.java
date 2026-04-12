@@ -176,7 +176,7 @@ public class Elevator implements Structure {
             locations.set(loc.getBlockX() + "_" + loc.getBlockY() + "_" + loc.getBlockZ(), loc);
 
         config.set("base-level", minY);
-        config.set("dest-level", carriage.getTertiaryPosition());
+        config.set("dest-level", carriage.getTertiaryPosition().getBlockY());
         config.getRoot().save();
     }
 
