@@ -23,6 +23,7 @@ public class Elevator implements Structure {
     private final ConfigSection config;
     private final ArrayList<Location> carriageLocations = new ArrayList<>();
     private final HashSet<ElevatorBlock> elevatorBlocks = new HashSet<>();
+    private final HashSet<LivingEntity> passengers = new HashSet<>();
     private boolean isMoving = false;
     private long cooldown = 0;
     Player moveDelayTrigger = null;
@@ -87,7 +88,7 @@ public class Elevator implements Structure {
 
     /// Get all passengers known to be riding this elevator when it was last moving
     public Set<LivingEntity> getLastKnownPassengers() {
-        return getElevatorBlocks().stream().map(ElevatorBlock::getLastKnownPassengers).flatMap(HashSet::stream).collect(Collectors.toSet());
+        return passengers;
     }
 
     /// Get all passengers currently standing inside this elevator
@@ -269,6 +270,13 @@ public class Elevator implements Structure {
         int currentY = getCurrentY();
         int direction = (targetY > currentY ? 1 : -1);
 
+        // Calculate initial passengers list
+        passengers.clear();
+        for (LivingEntity e : getCurrentlyInside()) {
+            ElevatorUtils.freezePassengerMovement(e);
+            passengers.add(e);
+        }
+
         for (ElevatorBlock block : getElevatorBlocks())
             block.spawn(targetY);
 
@@ -276,6 +284,26 @@ public class Elevator implements Structure {
             ElevatorBlock elevatorBlock = getElevatorBlocks().iterator().next();
             if (elevatorBlock.atDestination || !elevatorBlock.isValid()) {
                 getElevatorBlocks().forEach(ElevatorBlock::end);
+                
+                // End passenger movement
+                for (LivingEntity e : passengers) {
+                    ElevatorUtils.unfreezePassengerMovement(e);
+                }
+
+                for (ElevatorBlock b : getElevatorBlocks()) {
+                    if (b.isFloorBlock()) {
+                        for (LivingEntity e : b.getEntitiesInsideBlock()) {
+                            Location entityLoc = e.getLocation();
+                            double teleportY = b.targetY + 1.01;
+                            entityLoc.setY(teleportY);
+                            if (e.getVehicle() != null)
+                                e.getVehicle().teleport(entityLoc);
+                            else
+                                e.teleport(entityLoc);
+                        }
+                    }
+                }
+
                 setCurrentY(elevatorBlock.getCurrentY());
                 isMoving = false;
                 task.cancel();
@@ -283,22 +311,52 @@ public class Elevator implements Structure {
                 return;
             }
 
+            // Determine distance actually moved
             double actualMove = 0;
             for (ElevatorBlock block : getElevatorBlocks()) {
                 actualMove = block.move(direction);
             }
+            final double finalActualMove = actualMove;
 
-            // Handle player passengers
-            double finalActualMove = actualMove;
-            getLastKnownPassengers().forEach(e -> {
+            // Get new passengers and disable their movement/gravity
+            HashSet<LivingEntity> newPassengers = new HashSet<>(getCurrentlyInside());
+            for (LivingEntity e : newPassengers) {
+                if (!passengers.contains(e)) {
+                    ElevatorUtils.freezePassengerMovement(e);
+                }
+            }
+
+            // Remove old passengers that are too far away
+            HashSet<LivingEntity> toRemove = new HashSet<>();
+            passengers.forEach(e -> {
+                boolean tooFar = true;
+                for (ElevatorBlock b : getElevatorBlocks()) {
+                    if (b.isFloorBlock() && e.getLocation().getWorld() == b.getCurrentLocation().getWorld() 
+                        && e.getLocation().distanceSquared(b.getCurrentLocation()) <= 3 * 3) {
+                        tooFar = false;
+                        break;
+                    }
+                }
+                if (tooFar) {
+                    toRemove.add(e);
+                    ElevatorUtils.unfreezePassengerMovement(e);
+                }
+            });
+            passengers.removeAll(toRemove);
+
+            // Update passengers with new ones
+            passengers.addAll(newPassengers);
+
+            // Handle passengers
+            for (LivingEntity e : passengers) {
+                e.setFallDistance(0);
+                e.setVelocity(new Vector(0, finalActualMove, 0));
+
                 if (e instanceof Player p) {
-                    p.setFallDistance(0);
-                    p.setVelocity(new Vector(0, finalActualMove, 0));
-
                     // Re-enable flying every tick to prevent the player from manually disabling it
                     p.setFlying(true);
                 }
-            });
+            }
         })
         .repeat(0L, 1L);
     }
