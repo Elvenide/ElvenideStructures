@@ -43,8 +43,8 @@ public class Elevator implements Structure {
         if (!config.contains("locations"))
             return carriageLocations;
 
-        for (String key : config.getSection("locations").getKeys()) {
-            carriageLocations.add(config.getSection("locations").getLocation(key));
+        for (String key : config.getSectionOrThrow("locations").getKeys()) {
+            carriageLocations.add(config.getSectionOrThrow("locations").getLocation(key));
         }
         return carriageLocations;
     }
@@ -100,7 +100,7 @@ public class Elevator implements Structure {
     public int getCarriageSize() {
         if (!config.contains("locations"))
             return 0;
-        return config.getSection("locations").getKeys().size();
+        return config.getSectionOrThrow("locations").getKeys().size();
     }
 
     /// Get the base floor Y level of this elevator
