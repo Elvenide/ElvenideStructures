@@ -283,7 +283,7 @@ public class Elevator implements Structure {
                 return;
             }
 
-            double actualMove = 0;
+            double actualMove = elevatorBlock.getBlocksPerTick(direction);
             for (ElevatorBlock block : getElevatorBlocks()) {
                 actualMove = block.move(direction);
             }
