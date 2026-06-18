@@ -25,7 +25,9 @@ public final class ElvenideStructures extends JavaPlugin {
 
     @Override
     public void onLoad() {
-        Core.text.packages.moreColors.install();
+        Core.text.packages.install(
+            Core.text.packages.moreColors
+        );
     }
 
     @Override
@@ -34,7 +36,9 @@ public final class ElvenideStructures extends JavaPlugin {
 
         File dataFolder = getDataFolder();
         if (!dataFolder.exists()) {
-            dataFolder.mkdirs();
+            boolean success = dataFolder.mkdirs();
+            if (!success)
+                throw new IllegalStateException("An unknown error prevented the ElvenideStructures plugin from creating its plugin folder.");
         }
 
         Core.plugin.registerListeners(elevatorManager); // Register Bukkit listener for elevators
@@ -46,20 +50,14 @@ public final class ElvenideStructures extends JavaPlugin {
         Core.commands.create("elvenidestructures")
             .setAliases("estructures", "estruct")
             .setDescription("<dark_aqua>Create moving structures!")
-            .addSubGroup("elevator", builder -> {
-                builder
-                    .addSubCommand(new ElevatorCreateCommand())
-                    .addSubCommand(new ElevatorDeleteCommand())
-                    .addSubCommand(new ElevatorRunCommand());
-            })
-            .addSubGroup("door", builder -> {
-                builder
-                    .addSubGroup("create", create -> {
-                        create
-                            .addSubCommand(new SlidingDoorCommand());
-                    })
-                    .addSubCommand(new DoorDeleteCommand());
-            })
+            .addSubGroup("elevator", builder -> builder
+                .addSubCommand(new ElevatorCreateCommand())
+                .addSubCommand(new ElevatorDeleteCommand())
+                .addSubCommand(new ElevatorRunCommand()))
+            .addSubGroup("door", builder -> builder
+                .addSubGroup("create", create -> create
+                    .addSubCommand(new SlidingDoorCommand()))
+                .addSubCommand(new DoorDeleteCommand()))
             .addSubCommand(new SubCommand() {
                 @Override
                 public @NotNull String label() {

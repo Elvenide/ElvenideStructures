@@ -1,5 +1,7 @@
 package com.elvenide.structures;
 
-public enum Keys {
+import com.elvenide.core.providers.key.CoreKey;
+
+public enum Keys implements CoreKey {
     SELECTION_TOOL
 }

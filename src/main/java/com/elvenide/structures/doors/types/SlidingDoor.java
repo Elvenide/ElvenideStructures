@@ -30,8 +30,8 @@ public class SlidingDoor implements Door {
         if (!config.contains("locations"))
             return blocks;
 
-        for (String key : config.getSection("locations").getKeys()) {
-            blocks.add(config.getSection("locations").getLocation(key));
+        for (String key : config.getSectionOrThrow("locations").getKeys()) {
+            blocks.add(config.getSectionOrThrow("locations").getLocation(key));
         }
         return blocks;
     }

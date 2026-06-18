@@ -7,7 +7,6 @@ import org.bukkit.entity.*;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 public class ElevatorBlock {
@@ -16,9 +15,8 @@ public class ElevatorBlock {
     private FallingBlock block;
     private final Location currentLocation;
     private final Elevator parent;
-    private final HashSet<LivingEntity> passengers = new HashSet<>();
     private final int baseDifference;
-    private int targetY;
+    int targetY;
     private final boolean isFloorBlock;
     public boolean atDestination = false;
 
@@ -30,7 +28,7 @@ public class ElevatorBlock {
         this.isFloorBlock = isFloorBlock;
     }
 
-    private Location getCurrentLocation() {
+    Location getCurrentLocation() {
         return currentLocation;
     }
 
@@ -43,14 +41,6 @@ public class ElevatorBlock {
     }
 
     public void spawn(int targetY) {
-        passengers.clear();
-
-        if (isFloorBlock())
-            for (LivingEntity e : getEntitiesOnBlock()) {
-                ElevatorUtils.freezePassengerMovement(e);
-                passengers.add(e);
-            }
-
         this.blockData = getCurrentLocation().getBlock().getBlockData();
         getCurrentLocation().toBlockLocation().getBlock().setBlockData(Material.AIR.createBlockData(), false);
 
@@ -71,99 +61,44 @@ public class ElevatorBlock {
         return parent.getSpeed() * direction / 20.0;
     }
 
-    public void move(double direction) {
+    public double move(double direction) {
         double blocksPerTick = getBlocksPerTick(direction);
 
         double prevY = getCurrentLocation().getY();
         double y = prevY + blocksPerTick;
-        if ((prevY < targetY && y > targetY) || (prevY > targetY && y < targetY)) {
-            // Reset y
+        if (direction > 0 && y >= targetY) {
+            y = targetY;
+        } else if (direction < 0 && y <= targetY) {
             y = targetY;
         }
 
         // Check if at destination
         atDestination = y == targetY;
 
+        double actualMove = y - prevY;
+
         // Move elevator
         setCurrentY(y);
-        blockEntity().setVelocity(new Vector(0, blocksPerTick, 0));
+        blockEntity().setVelocity(new Vector(0, actualMove, 0));
 
-        // Move any entities on elevator
-        if (isFloorBlock()) {
-            // Get new passengers and disable their movement/gravity
-            HashSet<LivingEntity> newPassengers = new HashSet<>(getEntitiesOnBlock());
-            for (LivingEntity e : newPassengers) {
-                if (!passengers.contains(e)) {
-                    ElevatorUtils.freezePassengerMovement(e);
-                }
-            }
-
-            // Remove old passengers that are too far away
-            HashSet<LivingEntity> toRemove = new HashSet<>();
-            passengers.forEach(e -> {
-                if (e.getLocation().getWorld() != getCurrentLocation().getWorld()
-                    || e.getLocation().distanceSquared(getCurrentLocation()) > 3 * 3) {
-                    toRemove.add(e);
-                    ElevatorUtils.unfreezePassengerMovement(e);
-                }
-            });
-            passengers.removeAll(toRemove);
-
-            // Update passengers with new ones
-            passengers.addAll(newPassengers);
-
-            // Handle current non-player passengers
-            for (LivingEntity e : passengers) {
-                if (!(e instanceof Player)) {
-                    // Always teleport non-players
-
-                    e.setFallDistance(0);
-                    Location entityLoc = e.getLocation();
-                    double teleportY = y + 1;
-
-                    if (direction > 0)
-                        teleportY += 0.15;
-                    else
-                        teleportY -= 0.15;
-
-                    entityLoc.setY(teleportY);
-                    if (e.getVehicle() != null)
-                        e.getVehicle().teleport(entityLoc);
-                    else
-                        e.teleport(entityLoc);
-                }
-            }
-        }
+        return actualMove;
     }
 
     public void end() {
-        if (isFloorBlock()) {
-            for (LivingEntity e : getEntitiesInsideBlock()) {
-                Location entityLoc = e.getLocation();
-                double teleportY = getCurrentLocation().getBlockY() + 1.01;
-                entityLoc.setY(teleportY);
-                if (e.getVehicle() != null)
-                    e.getVehicle().teleport(entityLoc);
-                else
-                    e.teleport(entityLoc);
-            }
-
-            // Deal with passengers who are getting off the elevator
-            for (LivingEntity e : passengers) {
-                ElevatorUtils.unfreezePassengerMovement(e);
-            }
-        }
-
-        getCurrentLocation().toBlockLocation().getBlock().setBlockData(blockData, false);
+        Location finalLoc = getCurrentLocation().toBlockLocation();
+        finalLoc.setY(targetY);
+        finalLoc.getBlock().setBlockData(blockData, false);
 
         if (blockEntity() != null)
             blockEntity().remove();
 
+        // Update current location to exact target
+        currentLocation.setY(targetY);
         atDestination = false;
     }
 
     public int getCurrentY() {
-        return getCurrentLocation().getBlockY() - baseDifference;
+        return (int) Math.round(getCurrentLocation().getY()) - baseDifference;
     }
 
     public boolean isValid() {
@@ -183,13 +118,6 @@ public class ElevatorBlock {
     public List<LivingEntity> getEntitiesInsideBlock() {
         Location horizontalCenter = getCurrentLocation().toCenterLocation();
         return new ArrayList<>(horizontalCenter.getNearbyLivingEntities(0.5, 0.5, 0.5));
-    }
-
-    /**
-     * Unlike getEntitiesOnBlock, this only returns entities that were last in the elevator when it was moving
-     */
-    public HashSet<LivingEntity> getLastKnownPassengers() {
-        return passengers;
     }
 
 }

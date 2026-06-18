@@ -3,7 +3,6 @@ package com.elvenide.structures.selection;
 import com.elvenide.core.Core;
 import com.elvenide.core.api.PublicAPI;
 import com.elvenide.core.providers.item.ItemBuilder;
-import com.elvenide.structures.ElvenideStructures;
 import com.elvenide.structures.Keys;
 import com.elvenide.structures.selection.events.SelectionCancelEvent;
 import com.elvenide.structures.selection.events.SelectionEvent;
@@ -17,6 +16,7 @@ import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -36,7 +36,7 @@ public abstract class SelectionTool implements Listener {
         this.uuid = UUID.randomUUID();
         ItemBuilder builder = create(Core.items.create(Material.NETHERITE_AXE)
             .name("<smooth_purple>Elvenide's Selection Tool")
-            .data(Keys.SELECTION_TOOL, PersistentDataType.STRING, uuid.toString())
+            .data(Keys.SELECTION_TOOL.get(), PersistentDataType.STRING, uuid.toString())
             .lore("<yellow>Left-click <gray>to select corner #1")
             .lore("<yellow>Right-click <gray>to select corner #2"));
         builder.lore("<yellow>Press F <gray>to complete selection");
@@ -56,7 +56,7 @@ public abstract class SelectionTool implements Listener {
     public boolean is(ItemStack item) {
         if (item == null || !item.hasItemMeta())
             return false;
-        return Core.items.getData(item, Keys.SELECTION_TOOL, PersistentDataType.STRING, "").equals(uuid.toString());
+        return Core.items.getData(item, Keys.SELECTION_TOOL.get(), PersistentDataType.STRING, "").equals(uuid.toString());
     }
 
     /// Returns false if the corner is already selected
@@ -99,6 +99,7 @@ public abstract class SelectionTool implements Listener {
     }
 
     /// Called when the player left-clicks a block
+    @ApiStatus.OverrideOnly
     protected void onLeftClick(Block block, Player player) {
         Location l = block.getLocation();
         if (!selectCorner1(l))
@@ -112,6 +113,7 @@ public abstract class SelectionTool implements Listener {
     }
 
     /// Called when the player right-clicks a block
+    @ApiStatus.OverrideOnly
     protected void onRightClick(Block block, Player player) {
         Location l = block.getLocation();
         if (!selectCorner2(l))
@@ -125,26 +127,32 @@ public abstract class SelectionTool implements Listener {
     }
 
     /// Called when the player shift-left-clicks a block
+    @SuppressWarnings({ "unused", "EmptyMethod" })
+    @ApiStatus.OverrideOnly
     protected void onShiftLeftClick(Block block, Player player) {
         // Does nothing by default
     }
 
     /// Called when the player shift-left-clicks, whether a block or not
+    @ApiStatus.OverrideOnly
     protected void onShiftLeftClick(Player player) {
         // Does nothing by default
     }
 
     /// Called when the player shift-right-clicks a block
+    @ApiStatus.OverrideOnly
     protected void onShiftRightClick(Block block, Player player) {
         // Does nothing by default
     }
 
     /// Called when the player shift-right-clicks, whether a block or not
+    @ApiStatus.OverrideOnly
     protected void onShiftRightClick(Player player) {
         // Does nothing by default
     }
 
     /// Called when the player presses F (offhand swap)
+    @ApiStatus.OverrideOnly
     protected void onFPress(Player player) {
         Selection selection = getSelection();
         @Nullable String error = getCompletionError();
